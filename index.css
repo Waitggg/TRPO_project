@@ -1,0 +1,114 @@
+h1{
+	color: red;
+	size: 100px;
+}
+
+.h{
+	color: red;
+	size: 100px;
+	align-content: center;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0;
+}
+
+.mainContainer {
+    display: flex;
+    gap: 20px;
+    flex-direction: column;
+}
+
+.tracksContainer{
+	align-content: center;
+	background: #3333;
+	border-radius: 20px;
+	padding: 40px;
+    padding-right: 80%;
+}
+
+.track{
+    align-content: center;
+    background: #3333;
+    border-radius: 20px;
+    padding: 40px;
+    padding-right: 560%;
+    margin-bottom: 20px;
+}
+
+.controls{
+	width: 350px;
+	align-content: center;
+	background: #3333;
+	border-radius: 20px;
+	padding: 20px;
+}
+
+.character {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 40%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    transition: left 0.1s linear;
+    bottom: 10px;
+}
+
+.finish-line {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: red;
+}
+
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+    padding-left: 95px;
+    padding-top: inherit;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+}
+
+.character-info {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f8f8f8;
+    border-radius: 5px;
+}
+
+.results {
+    margin-top: 20px;
+    padding: 15px;
+    background: #e8f4fd;
+    border-radius: 5px;
+}
+
+.inventoryMenu{
+    position: absolute;
+    align-content: center;
+    background: #3333;
+    border-radius: 20px;
+    padding: 100px;
+    padding-right: 560%;
+    margin-bottom: 20px;
+}
