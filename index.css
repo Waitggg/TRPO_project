@@ -39,7 +39,7 @@ body {
 }
 
 .controls{
-	width: 350px;
+	width: 496px;
 	align-content: center;
 	background: #3333;
 	border-radius: 20px;
@@ -113,14 +113,18 @@ button:disabled {
 .deleteButton{
     width: 75px;
     align-content: center;
-    background: #c1ffec96;
+    background: #55968396;
     border-radius: 20px;
     padding: 0px;
     padding-right: 0px;
     margin-bottom: 20px;
     text-align: center;
 }
-
+.idText {
+     text-align: right;
+    margin-top: 5px;
+    padding-right: 9px;
+}
 .characterInMenu{
     width: 200px;
     align-content: center;
