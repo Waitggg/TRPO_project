@@ -1,18 +1,19 @@
 const characters = [
     { id: 1, name: "Спринтер", color: "#FF6B6B", speed: 8 },
-    { id: 2, name: "Марафонец", color: "#4ECDC4", speed: 6 }
+    { id: 2, name: "Марафонец", color: "#4ECDC4", speed: 6 },
+    { id: 3, name: "Чювак", color: "#FE6B6B", speed: 80 }
 ];
 
 const container = document.getElementById('container');
-const button1 = document.getElementById('B1');
+const buttonInv = document.getElementById('ButtonInv');
+const buttonReset = document.getElementById('ButtonReset');
 let isMenuOpened = false;
 
-button1.addEventListener('click', function()
+buttonInv.addEventListener('click', function()
 {
     const newDiv = document.createElement('div');
     newDiv.classList.add('inventoryMenu');
     newDiv.id = 'menuDiv';
-    // newDiv.textContent = characters[0].name;
     document.body.appendChild(newDiv);
 
     for(let i = 0; i < characters.length; i++)
@@ -35,7 +36,33 @@ button1.addEventListener('click', function()
         newMDiv.appendChild(deleteButton);
         deleteButton.id = `deleteButton${i}`;
 
+        addButton.addEventListener('click', function()
+        {
+            if(!document.getElementById(`track${i}`))
+            {
+                const newDiv = document.createElement('div');
+                newDiv.classList.add('track');
+                newDiv.id = `track${i}`;
+                newDiv.textContent = characters[i].name;
+                container.appendChild(newDiv);
+            }
+        })
+
+        deleteButton.addEventListener('click', function()
+        {
+            if(document.getElementById(`track${i}`))
+            {
+                const div = document.getElementById('container');
+                div.removeChild(document.getElementById(`track${i}`));
+            }
+        })
     }
+
+    const generateButton = document.createElement('button');
+    generateButton.textContent = 'Сгенерировать';
+    generateButton.classList.add('generateButton');
+    newDiv.appendChild(generateButton);
+    generateButton.id = 'generateButton'
 
     const exitButton = document.createElement('button');
     exitButton.textContent = 'X';
@@ -51,20 +78,14 @@ button1.addEventListener('click', function()
         document.body.removeChild(menuDiv);
         isMenuOpened = false;
     })
-
-    addButton.addEventListener('click', function()
-    {
-        const newDiv = document.createElement('div');
-        newDiv.classList.add('track');
-        newDiv.textContent = (addButton.parent.id[3]).name;
-        container.appendChild(newDiv);
-    })
 })
 
 
 
-
-
+buttonReset.addEventListener('click', function()
+{
+    container.innerHTML = '';
+})
 
 
 

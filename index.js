@@ -15,7 +15,7 @@ const requestHandler = (request, response) =>{
 		response.end(JSON.stringify(haram));
 		break;
 	case '/index.css':
-		fs.readFile('C:/\Users/\kiril/\TRPO_Git/\index.css', (err, data) => {
+		fs.readFile('C:/\Users/\Admin/\git_html/\TRPO_project/\index.css', (err, data) => {
         if (err) {
           response.end('Error: ', err);
         }else{
@@ -23,7 +23,7 @@ const requestHandler = (request, response) =>{
         }});
 		break;
 	case '/game.js':
-		fs.readFile('C:/\Users/\kiril/\TRPO_Git/\game.js', (err, data) => {
+		fs.readFile('C:/\Users/\Admin/\git_html/\TRPO_project/\game.js', (err, data) => {
         if (err) {
           response.end('Error: ', err);
         }else{
@@ -31,7 +31,7 @@ const requestHandler = (request, response) =>{
         }});
 		break;
 	default:
-		fs.readFile('C:/\Users/\kiril/\TRPO_Git/\index.html', (err, data) => {
+		fs.readFile('C:/\Users/\Admin/\git_html/\TRPO_project/\index.html', (err, data) => {
         if (err) {
           response.end('Error: ', err);
         }else{
