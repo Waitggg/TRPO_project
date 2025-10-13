@@ -89,6 +89,48 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.exitButton{
+    position: absolute;
+    margin-top: 0;
+    margin-left: auto;
+    padding-top: 3px;
+    padding-left: 85px;
+    top: 15px;
+    right: 10px;
+}
+
+.addButton{
+    width: 75px;
+    align-content: center;
+    background: #c1ffec96;
+    border-radius: 20px;
+    padding: 0px;
+    padding-right: 0px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.deleteButton{
+    width: 75px;
+    align-content: center;
+    background: #c1ffec96;
+    border-radius: 20px;
+    padding: 0px;
+    padding-right: 0px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.characterInMenu{
+    width: 200px;
+    align-content: center;
+    background: #c1ffec96;
+    border-radius: 20px;
+    padding: 20px;
+    padding-right: 0;
+    margin-bottom: 20px;
+}
+
 .character-info {
     margin: 10px 0;
     padding: 10px;
@@ -104,11 +146,12 @@ button:disabled {
 }
 
 .inventoryMenu{
-    position: absolute;
+    position: fixed;
     align-content: center;
-    background: #3333;
+    background: #333333;
     border-radius: 20px;
-    padding: 100px;
-    padding-right: 560%;
-    margin-bottom: 20px;
+    padding: 250px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }

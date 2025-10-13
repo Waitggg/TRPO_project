@@ -5,17 +5,64 @@ const characters = [
 
 const container = document.getElementById('container');
 const button1 = document.getElementById('B1');
+let isMenuOpened = false;
 
 button1.addEventListener('click', function()
 {
     const newDiv = document.createElement('div');
     newDiv.classList.add('inventoryMenu');
-    newDiv.textContent = characters;
-    // const newDiv = document.createElement('div');
-    // newDiv.classList.add('track');
+    newDiv.id = 'menuDiv';
     // newDiv.textContent = characters[0].name;
-    // container.appendChild(newDiv);
+    document.body.appendChild(newDiv);
+
+    for(let i = 0; i < characters.length; i++)
+    {
+        const newMDiv = document.createElement('div');
+        newMDiv.classList.add('characterInMenu');
+        newMDiv.id = `char${i}`;
+        newDiv.appendChild(newMDiv);
+        newMDiv.textContent = characters[i].name + " СКОРОЧТЬ!!: " + characters[i].speed;
+
+        const addButton = document.createElement('button');
+        addButton.textContent = 'Добавить';
+        addButton.classList.add('addButton');
+        newMDiv.appendChild(addButton);
+        addButton.id = `addButton${i}`;
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Удалить';
+        deleteButton.classList.add('deleteButton');
+        newMDiv.appendChild(deleteButton);
+        deleteButton.id = `deleteButton${i}`;
+
+    }
+
+    const exitButton = document.createElement('button');
+    exitButton.textContent = 'X';
+    exitButton.classList.add('exitButton');
+    newDiv.appendChild(exitButton);
+    exitButton.id = 'exitButton'
+    isMenuOpened = true;
+
+    exitButton.addEventListener('click', function()
+    {
+        const menuDiv = document.getElementById('menuDiv');
+        menuDiv.removeChild(exitButton);
+        document.body.removeChild(menuDiv);
+        isMenuOpened = false;
+    })
+
+    addButton.addEventListener('click', function()
+    {
+        const newDiv = document.createElement('div');
+        newDiv.classList.add('track');
+        newDiv.textContent = (addButton.parent.id[3]).name;
+        container.appendChild(newDiv);
+    })
 })
+
+
+
 
 
 
