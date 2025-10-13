@@ -1,3 +1,5 @@
+//const { SocketAddress } = require("net");
+
 const characters = [
     { id: 1, name: "Спринтер", color: "#FF6B6B", speed: 8 },
     { id: 2, name: "Марафонец", color: "#4ECDC4", speed: 6 }
@@ -9,12 +11,13 @@ let isMenuOpened = false;
 
 button1.addEventListener('click', function()
 {
+    isMenuOpened = true;
     const newDiv = document.createElement('div');
     newDiv.classList.add('inventoryMenu');
     newDiv.id = 'menuDiv';
-    // newDiv.textContent = characters[0].name;
+    //newDiv.textContent = characters[0].name;
     document.body.appendChild(newDiv);
-
+    if(isMenuOpened == true){button1.disabled = true;}else{button1.disabled = false;}
     for(let i = 0; i < characters.length; i++)
     {
         const newMDiv = document.createElement('div');
@@ -35,6 +38,41 @@ button1.addEventListener('click', function()
         newMDiv.appendChild(deleteButton);
         deleteButton.id = `deleteButton${i}`;
 
+        addButton.addEventListener('click', function()
+        {
+		const parent = this.parentElement; 
+		const parentId = parent.id;        
+		const index = parseInt(parentId.replace('char', ''));
+		
+		const character = characters[index];
+		
+        const newDiv = document.createElement('div');
+        newDiv.classList.add('track');
+        newDiv.textContent = character.name;
+        container.appendChild(newDiv);
+        })
+
+        const idText = document.createElement('p');
+        idText.textContent = characters[i].id;
+        idText.classList.add('idText');
+        newMDiv.appendChild(idText);
+
+        deleteButton.addEventListener('click', function()
+      {
+        const parent = this.parentElement; 
+        const parentId = parent.id;        
+        const index = parseInt(parentId.replace('char', ''));
+        const character = characters[index];
+        const allTracks = container.getElementsByClassName('track');
+        for (let i = 0; i < allTracks.length; i++)
+             {
+            if (allTracks[i].textContent.includes(character.name)) 
+                {
+                container.removeChild(allTracks[i]);
+                break;
+                }
+            }
+      })
     }
 
     const exitButton = document.createElement('button');
@@ -50,19 +88,11 @@ button1.addEventListener('click', function()
         menuDiv.removeChild(exitButton);
         document.body.removeChild(menuDiv);
         isMenuOpened = false;
+        button1.disabled = false;
     })
 
-    addButton.addEventListener('click', function()
-    {
-        const newDiv = document.createElement('div');
-        newDiv.classList.add('track');
-        newDiv.textContent = (addButton.parent.id[3]).name;
-        container.appendChild(newDiv);
-    })
+
 })
-
-
-
 
 
 
