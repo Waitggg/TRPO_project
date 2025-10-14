@@ -36,6 +36,25 @@ body {
     padding: 40px;
     padding-right: 560%;
     margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.charOnTrack{
+    align-content: center;
+    background: #3333;
+    border-radius: 20px;
+    padding: 15px;
+    padding-left: 20px;
+}
+
+.charTextOnTrack{
+    background: #3333;
+    border-radius: 20px;
+    padding: 3px;
+    padding-left: 0;
+    margin-inline: auto;
+    margin-bottom: -30px;
 }
 
 .controls{

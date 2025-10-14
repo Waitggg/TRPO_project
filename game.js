@@ -6,11 +6,14 @@ const characters = [
 
 const container = document.getElementById('container');
 const buttonInv = document.getElementById('ButtonInv');
+const buttonStart = document.getElementById('ButtonStart');
 const buttonReset = document.getElementById('ButtonReset');
 let isMenuOpened = false;
 
 buttonInv.addEventListener('click', function()
 {
+    isMenuOpened = true;
+    if(isMenuOpened) buttonInv.disabled = true;
     const newDiv = document.createElement('div');
     newDiv.classList.add('inventoryMenu');
     newDiv.id = 'menuDiv';
@@ -43,8 +46,19 @@ buttonInv.addEventListener('click', function()
                 const newDiv = document.createElement('div');
                 newDiv.classList.add('track');
                 newDiv.id = `track${i}`;
-                newDiv.textContent = characters[i].name;
                 container.appendChild(newDiv);
+
+                const newDiv2 = document.createElement('div');
+                newDiv2.classList.add('charOnTrack');
+                newDiv2.id = `char${i}`;
+                // newDiv2.textContent = characters[i].name;
+                newDiv.appendChild(newDiv2);
+
+                const newP = document.createElement('p');
+                newP.classList.add('charTextOnTrack');
+                newP.id = `charText${i}`;
+                newP.textContent = characters[i].name;
+                newDiv.appendChild(newP);
             }
         })
 
@@ -69,7 +83,6 @@ buttonInv.addEventListener('click', function()
     exitButton.classList.add('exitButton');
     newDiv.appendChild(exitButton);
     exitButton.id = 'exitButton'
-    isMenuOpened = true;
 
     exitButton.addEventListener('click', function()
     {
@@ -77,9 +90,21 @@ buttonInv.addEventListener('click', function()
         menuDiv.removeChild(exitButton);
         document.body.removeChild(menuDiv);
         isMenuOpened = false;
+        buttonInv.disabled = false;
     })
 })
 
+buttonInv.addEventListener('click', function()
+{
+    if(container.innerHTML)
+    {
+        for(let i = 0; i < characters.length; i++)
+        {
+            let char = container.getElementById(`track${i}`); 
+            // char.position = 500px;
+        }
+    }
+});
 
 
 buttonReset.addEventListener('click', function()
