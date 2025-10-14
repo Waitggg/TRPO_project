@@ -57,6 +57,18 @@ body {
     margin-bottom: -30px;
 }
 
+.inputImg{
+    position: fixed;
+    align-content: center;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 50px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding-top: 110px;
+}
+
 .controls{
 	width: 350px;
 	align-content: center;

@@ -92,6 +92,37 @@ buttonInv.addEventListener('click', function()
         isMenuOpened = false;
         buttonInv.disabled = false;
     })
+
+    generateButton.addEventListener('click', function()
+    {
+        const menuDiv = document.getElementById('menuDiv');
+        const inputImg = document.createElement('input');
+        inputImg.classList.add('inputImg');
+        inputImg.id = 'inputImg';
+        inputImg.type = 'file';
+        menuDiv.appendChild(inputImg);
+        const fileInput = document.getElementById('inputImg');
+        fileInput.addEventListener('change', function()
+        {
+            const file = this.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                fetch('/img', {
+                  method: 'POST',
+                  body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+              console.log('Файл успешно загружен:', data);
+              fileInput.style.display = 'none';
+            })
+            .catch(error => {
+              console.error('Ошибка загрузки файла:', error);
+            });
+            }
+        });
+    })
 })
 
 buttonInv.addEventListener('click', function()
