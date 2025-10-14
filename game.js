@@ -8,6 +8,7 @@ const container = document.getElementById('container');
 const buttonInv = document.getElementById('ButtonInv');
 const buttonStart = document.getElementById('ButtonStart');
 const buttonReset = document.getElementById('ButtonReset');
+let raceInProgress = false;
 let isMenuOpened = false;
 
 buttonInv.addEventListener('click', function()
@@ -51,7 +52,9 @@ buttonInv.addEventListener('click', function()
                 const newDiv2 = document.createElement('div');
                 newDiv2.classList.add('charOnTrack');
                 newDiv2.id = `char${i}`;
-                // newDiv2.textContent = characters[i].name;
+                newDiv2.dataset.characterId = i;
+                newDiv2.dataset.speed = characters[i].speed;
+                newDiv2.dataset.position = "0";
                 newDiv.appendChild(newDiv2);
 
                 const newP = document.createElement('p');
@@ -140,251 +143,87 @@ buttonInv.addEventListener('click', function()
 
 buttonReset.addEventListener('click', function()
 {
-    container.innerHTML = '';
+    // container.innerHTML = '';
+    raceInProgress = false;
+    buttonStart.disabled = false;
+    buttonInv.disabled = false;
+
+    const tracks = container.getElementsByClassName('charOnTrack');
+    for (let track of tracks) {
+        track.dataset.position = "0";
+        track.style.transform = 'translateX(0px)';
+    }
+    
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '<h2>Результаты: </h2>';
 })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// let tracks = [];
-// let raceInProgress = false;
-// let results = [];
-
-// // Инициализация игры
-// function initGame() {
-//     updateCharactersList();
-//     addTrack(); // Добавляем первую линию по умолчанию
-// }
-
-// // Обновление списка персонажей
-// function updateCharactersList() {
-//     const container = document.getElementById('charactersList');
-//     container.innerHTML = characters.map(char => `
-//         <div style="margin: 5px 0; padding: 5px; background: ${char.color}20; border-radius: 3px;">
-//             <strong>${char.name}</strong> - скорость: ${char.speed}
-//         </div>
-//     `).join('');
-// }
-
-// // Добавление новой линии
-// function addTrack() {
-//     const trackId = tracks.length + 1;
-//     tracks.push({
-//         id: trackId,
-//         characters: [],
-//         element: null
-//     });
+buttonStart.addEventListener('click', function()
+{
+    if (raceInProgress) {
+        return;
+    }
     
-//     renderTracks();
-// }
-
-// // Отрисовка всех линий
-// function renderTracks() {
-//     const container = document.getElementById('tracks');
-//     container.innerHTML = '';
+    const tracks = document.getElementsByClassName('charOnTrack');
+    if (tracks.length === 0) {
+        alert("Добавьте хотя бы одного персонажа на трек!");
+        return;
+    }
     
-//     tracks.forEach(track => {
-//         const trackElement = document.createElement('div');
-//         trackElement.className = 'track';
-//         trackElement.innerHTML = `
-//             <div class="finish-line"></div>
-//             <div class="track-info" style="position: absolute; top: 5px; left: 10px;">
-//                 Линия ${track.id}
-//             </div>
-//         `;
+    raceInProgress = true;
+    buttonStart.disabled = true;
+    buttonInv.disabled = true;
+    
+    const finishLine = container.offsetWidth - 200;
+    let animationId;
+    
+    function moveTracks() {
+        if (!raceInProgress) {
+            cancelAnimationFrame(animationId);
+            return;
+        }
         
-//         // Добавляем персонажей на линию
-//         track.characters.forEach(char => {
-//             const charElement = document.createElement('div');
-//             charElement.className = 'character';
-//             charElement.style.background = char.color;
-//             charElement.style.left = '0px';
-//             charElement.textContent = char.name.charAt(0);
-//             charElement.title = `${char.name} (скорость: ${char.speed})`;
-//             charElement.id = `char-${char.id}-track-${track.id}`;
-//             trackElement.appendChild(charElement);
-//         });
-        
-//         // Кнопка для добавления персонажа
-//         const addCharBtn = document.createElement('button');
-//         addCharBtn.textContent = '➕ Добавить персонажа';
-//         addCharBtn.onclick = () => addCharacterToTrack(track.id);
-//         addCharBtn.disabled = raceInProgress;
-        
-//         container.appendChild(trackElement);
-//         container.appendChild(addCharBtn);
-//         container.appendChild(document.createElement('br'));
-//         container.appendChild(document.createElement('br'));
-//     });
-// }
-
-// // Добавление персонажа на линию
-// function addCharacterToTrack(trackId) {
-//     if (raceInProgress) return;
+        let allFinished = true;
+        let maxPosition = 0;
+        let winnerTrack = null;
     
-//     const track = tracks.find(t => t.id === trackId);
-//     if (!track) return;
-    
-//     // Выбираем случайного персонажа, которого еще нет на этой линии
-//     const availableChars = characters.filter(char => 
-//         !track.characters.some(trackChar => trackChar.id === char.id)
-//     );
-    
-//     if (availableChars.length === 0) {
-//         alert('Все персонажи уже на этой линии!');
-//         return;
-//     }
-    
-//     const randomChar = availableChars[Math.floor(Math.random() * availableChars.length)];
-//     track.characters.push({...randomChar});
-    
-//     renderTracks();
-// }
-
-// // Старт забега
-// function startRace() {
-//     if (raceInProgress) return;
-    
-//     // Проверяем, что на всех линиях есть персонажи
-//     const emptyTracks = tracks.filter(track => track.characters.length === 0);
-//     if (emptyTracks.length > 0) {
-//         alert('Добавьте персонажей на все линии!');
-//         return;
-//     }
-    
-//     raceInProgress = true;
-//     results = [];
-//     document.getElementById('startBtn').disabled = true;
-//     document.getElementById('results').innerHTML = 'Забег начался!';
-    
-//     // Запускаем движение на каждой линии
-//     tracks.forEach(track => {
-//         startTrackRace(track.id);
-//     });
-// }
-
-// // Запуск забега на конкретной линии
-// function startTrackRace(trackId) {
-//     const track = tracks.find(t => t.id === trackId);
-//     if (!track) return;
-    
-//     const trackWidth = document.querySelector('.track').offsetWidth - 50;
-//     let finished = 0;
-    
-//     track.characters.forEach(character => {
-//         let position = 0;
-//         const charElement = document.getElementById(`char-${character.id}-track-${trackId}`);
-        
-//         const moveInterval = setInterval(() => {
-//             if (!raceInProgress) {
-//                 clearInterval(moveInterval);
-//                 return;
-//             }
+        for (let track of tracks) {
+            let currentPosition = parseInt(track.dataset.position);
+            let speed = parseInt(track.dataset.speed);
             
-//             position += character.speed;
-//             charElement.style.left = position + 'px';
+            if (currentPosition < finishLine) {
+                currentPosition += speed;
+                track.dataset.position = currentPosition.toString();
+                track.style.transform = `translateX(${currentPosition}px)`;
+                allFinished = false;
+            }
             
-//             // Проверка финиша
-//             if (position >= trackWidth) {
-//                 clearInterval(moveInterval);
-//                 finished++;
+            if (currentPosition > maxPosition) {
+                maxPosition = currentPosition;
+                winnerTrack = track;
+            }
+        }
+        
+        if (allFinished) {
+            raceInProgress = false;
+            buttonStart.disabled = false;
+            buttonInv.disabled = false;
+            
+            if (winnerTrack) {
+                const winnerId = parseInt(winnerTrack.dataset.characterId);
+                const winnerCharacter = characters[winnerId];
                 
-//                 // Записываем результат
-//                 if (!results.find(r => r.characterId === character.id && r.trackId === trackId)) {
-//                     results.push({
-//                         characterId: character.id,
-//                         trackId: trackId,
-//                         characterName: character.name,
-//                         time: Date.now()
-//                     });
-                    
-//                     updateResults();
-//                 }
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = `<h3>🏁 Победитель: ${winnerCharacter.name}!</h3>
+                                       <p>Скорость: ${winnerCharacter.speed}</p>
+                                       <p>Цвет: <span style="color:${winnerCharacter.color}">${winnerCharacter.color}</span></p>`;
                 
-//                 // Если все персонажи на линии финишировали
-//                 if (finished === track.characters.length) {
-//                     checkRaceComplete();
-//                 }
-//             }
-//         }, 100);
-//     });
-// }
-
-// // Обновление результатов
-// function updateResults() {
-//     const resultsContainer = document.getElementById('results');
-//     const sortedResults = [...results].sort((a, b) => a.time - b.time);
+                console.log(`Победитель: ${winnerCharacter.name}`);
+            }
+        } else {
+            animationId = requestAnimationFrame(moveTracks);
+        }
+    }
     
-//     resultsContainer.innerHTML = sortedResults.map((result, index) => `
-//         <div style="margin: 5px 0; padding: 8px; background: white; border-radius: 5px; border-left: 4px solid ${getCharacterColor(result.characterId)}">
-//             ${index + 1}. ${result.characterName} (Линия ${result.trackId})
-//         </div>
-//     `).join('');
-// }
-
-// // Получение цвета персонажа по ID
-// function getCharacterColor(characterId) {
-//     const char = characters.find(c => c.id === characterId);
-//     return char ? char.color : '#ccc';
-// }
-
-// // Проверка завершения всего забега
-// function checkRaceComplete() {
-//     const totalCharacters = tracks.reduce((sum, track) => sum + track.characters.length, 0);
-//     if (results.length === totalCharacters) {
-//         raceInProgress = false;
-//         document.getElementById('startBtn').disabled = false;
-//         document.getElementById('results').innerHTML = 
-//             '<h3>🏁 Забег завершен!</h3>' + document.getElementById('results').innerHTML;
-//     }
-// }
-
-// // Сброс забега
-// function resetRace() {
-//     raceInProgress = false;
-//     results = [];
-//     document.getElementById('startBtn').disabled = false;
-//     document.getElementById('results').innerHTML = '';
-    
-//     // Сбрасываем позиции персонажей
-//     tracks.forEach(track => {
-//         track.characters = [];
-//     });
-    
-//     renderTracks();
-// }
-
-// // Запуск игры при загрузке страницы
-// window.onload = initGame;
+    moveTracks();
+})
