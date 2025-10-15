@@ -1,12 +1,12 @@
 h1{
-	color: red;
-	size: 100px;
+    color: red;
+    size: 100px;
 }
 
 .h{
-	color: red;
-	size: 100px;
-	align-content: center;
+    color: red;
+    size: 100px;
+    align-content: center;
 }
 
 body {
@@ -22,27 +22,45 @@ body {
 }
 
 .tracksContainer{
-	align-content: center;
-	background: #3333;
-	border-radius: 20px;
-	padding: 40px;
+    align-content: center;
+    background: url('трава.png');
+    background-size: contain;
+    background-position: center;
+    border-radius: 20px;
+    padding: 40px;
     padding-right: 80%;
 }
 
 .track{
     align-content: center;
-    background: #3333;
+    background: url('race41.png');
+    background-size: contain;
+    background-position: center;
     border-radius: 20px;
     padding: 40px;
-    padding-right: 560%;
+    padding-right: 520%;
     margin-bottom: 20px;
     display: flex;
     flex-direction: column;
 }
+.finish-line {
+    position: absolute;
+    right: 0px;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: linear-gradient(to bottom, red, darkred);
+    z-index: 300;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+    display: none;
+}
 
+.finish-line.visible {
+    display: block; 
+}
 .charOnTrack{
     align-content: center;
-    background: #3333;
+    background: #e1676733;
     border-radius: 20px;
     padding: 15px;
     padding-left: 20px;
@@ -58,23 +76,22 @@ body {
 }
 
 .inputImg{
-    position: fixed;
+    width: 100%;
+    max-width: 250px;
     align-content: center;
     background: #ffffff;
     border-radius: 20px;
-    padding: 50px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding-top: 110px;
+    padding: 15px;
+    margin-top: 15px;
+    box-sizing: border-box;
 }
 
 .controls{
-	width: 350px;
-	align-content: center;
-	background: #3333;
-	border-radius: 20px;
-	padding: 20px;
+    width: 350px;
+    align-content: center;
+    background: #3333;
+    border-radius: 20px;
+    padding: 20px;
 }
 
 .character {
@@ -102,6 +119,7 @@ body {
 
 button {
     background: #4CAF50;
+    width: 100px;
     color: white;
     border: none;
     border-radius: 15px;
@@ -118,6 +136,10 @@ button:hover {
 button:disabled {
     background: #cccccc;
     cursor: not-allowed;
+}
+
+.killButton:hover {
+    background: #f16d6d;
 }
 
 .exitButton{
@@ -140,6 +162,20 @@ button:disabled {
     text-align: center;
 }
 
+.killButton {
+    width: 20px;
+    height: 20px;
+    background: #f3161696;
+    border-radius: 10px;
+    padding: 0px;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
 .deleteButton{
     width: 75px;
     align-content: center;
@@ -152,26 +188,26 @@ button:disabled {
 }
 
 .generateButton{
-    width: 75%;
-    align-content: center;
-    background: #c1ffec96;
-    border-radius: 20px;
-    padding: 30px;
-    padding-right: 30px;
-    text-align: center;
-    position: absolute;
-    bottom: 15px;
-    left: 65px;
-}
-
-.characterInMenu{
     width: 200px;
     align-content: center;
     background: #c1ffec96;
     border-radius: 20px;
+    padding: 15px;
+    text-align: center;
+    margin-top: 20px;
+    position: static;
+}
+
+.characterInMenu{
+    position: relative;
+    width: 100%;
+    max-width: 250px;
+    align-content: center;
+    background: #c1ffec96;
+    border-radius: 20px;
     padding: 20px;
-    padding-right: 0;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
 }
 
 .character-info {
@@ -190,13 +226,66 @@ button:disabled {
 
 .inventoryMenu{
     position: fixed;
-    align-content: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     background: #333333;
     border-radius: 20px;
-    padding: 170px;
-    padding-top: 170px;
+    padding: 45px 30px;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    padding-top: 45px;
+    min-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.user-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+     background: rgba(51, 51, 51, 0.9);
+    color: white;
+    border-radius: 25px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.user-avatar {
+    width: 50px;
+    height: 50px;
+    background: url('opa.jpeg');
+    background-size: contain    ;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #4CAF50;
+    flex-shrink: 0;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: bold;
+    color: white;
+    font-size: 16px;
+}
+
+.user-status {
+    color: #ccc;
+    font-size: 12px;
 }
