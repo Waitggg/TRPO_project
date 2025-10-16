@@ -10,10 +10,7 @@ const charData = JSON.parse(fs.readFileSync(charJson, 'utf8'));
 const app = express();
 const port = 3000;
 
-const haram = {
-    vak4: '4vak',
-    vak5: '5vak'
-}
+app.use(express.static(path.join(__dirname, 'img')));
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -44,10 +41,6 @@ const upload = multer({
 });
 
 app.use(express.static('public'));
-
-app.get('/haram', (req, res) => {
-    res.json(haram);
-});
 
 app.get('/index.css', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.css'));
@@ -100,7 +93,7 @@ app.post('/img', upload.single('file'), async (req, res) => {
       return res.status(400).send('Файл не был загружен');
     }
 
-    const imageUrl = 'https://img.fix-price.by/insecure/rs:fit:800:800/plain/bit/_marketplace/images/origin/c0/c0152ab1a75c29230e6d2271cd434ce5.jpg';
+    const imageUrl = 'https://imgur.com/a/xH1ua7Q';
 
     // Первый запрос: Google Lens
     const lensResponse = await axios.get('https://serpapi.com/search', {
@@ -112,7 +105,7 @@ app.post('/img', upload.single('file'), async (req, res) => {
       }
     });
 
-		const respAi = lensResponse.data.related_content?.[0]?.query || 'Толстяк';//?.split(' ')[0]
+		const respAi = lensResponse.data.related_content?.[0]?.query || 'Толстяк';
     console.log(lensResponse.data);
     console.log(respAi);
 
@@ -136,6 +129,8 @@ app.post('/img', upload.single('file'), async (req, res) => {
 		  speed: jsonAiRes.speed
 		};
 
+		if(charData.runners.find(c => c.name === jsonAiRes.name))
+		{
 		charData.runners.push(newChuvak);
 		fs.writeFileSync('C:/\Users/\kiril/\TRPO_Git/\chars.json', JSON.stringify(charData, null, 2), 'utf8');
 		console.log('Добавлен:', newChuvak);
@@ -151,65 +146,27 @@ app.post('/img', upload.single('file'), async (req, res) => {
       object: respAi,
       ai_response: aiResult
     });
+  }
+  else
+  {
+  	res.json({
+      message: 'Файл не был загружен!',
+      file: {
+        originalname: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        url: `/uploads/${req.file.filename}`
+      },
+      object: respAi,
+      ai_response: aiResult
+    });
+  }
 
   } catch (error) {
     console.error('Ошибка загрузки или парсинга:', error);
     res.status(500).send('Ошибка при загрузке файла или распознавании объекта');
   }
 });
-
-// app.post('/img', upload.single('file'), (req, res) => {
-//     try {
-//         if (!req.file) {
-//             return res.status(400).send('Файл не был загружен');
-//         }
-
-// 				axios.get('https://serpapi.com/search', {
-// 			  params: {
-// 			    engine: 'google_lens',
-// 			    url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuwz4z9Y1NR1Z6BzBlrQE_WdYTPWHzWdmx6IDhJmcy5Wfttt8BHnl__VD69AdeTYmpOuvSr2d4bH4jmyxJc5xcdacVk_IZyvwUe2OgOs-NQA",
-// 			    q: 'who is this?',
-// 			    api_key: apiKey
-// 			  }
-// 			})
-// 			.then(response => {
-// 			  console.log('Результат:', response.data.title.split(" ")[0]);
-// 			  respAi = response.data.title.split(" ")[0];
-// 			})
-// 			.catch(error => {
-// 			  console.error('Ошибка:', error);
-
-// 			  axios.get('https://serpapi.com/search', {
-// 			  params: {
-// 			    engine: 'google_ai_mode',
-// 			    q: `напиши какую среднюю скорость мог бы развивать ${respAi} в гонке, ответ мне нужен в виде json, пример: { name: "Имя", color: "Цвет по образцу: (#FE6B6B)", speed: Скорость }`,
-// 			    api_key: apiKey
-// 			  }
-// 			})
-// 			.then(response => {
-// 			  console.log('Результат:', response.data.title.split(" ")[0]);
-// 			  respAi = response.data.title.split(" ")[0];
-// 			})
-// 			.then(
-// 				  	res.json({
-//             message: 'Файл успешно загружен!',
-//             file: {
-//                 originalname: req.file.originalname,
-//                 filename: req.file.filename,
-//                 size: req.file.size,
-//                 url: `/uploads/${req.file.filename}`
-//             }
-//         });
-// 			})
-// 			.catch(error => {
-// 			  console.error('Ошибка:', error);
-
-// 			});
-//     } catch (error) {
-//         console.error('Ошибка загрузки:', error);
-//         res.status(500).send('Ошибка при загрузке файла');
-//     }
-// };
 
 app.use('/uploads', express.static('uploads'));
 

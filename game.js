@@ -165,6 +165,20 @@ generateButton.addEventListener('click', function()
 
 })
 
+
+buttonInv.addEventListener('click', function()
+{
+    if(container.innerHTML)
+    {
+        for(let i = 0; i < charData.runners.length+1; i++)
+        {
+            let char = document.getElementById(`track${i}`); 
+            // char.position = 500px;
+        }
+    }
+});
+
+
 buttonReset.addEventListener('click', function()
 {
     if (isMenuOpened || raceInProgress) { 
@@ -220,9 +234,9 @@ buttonStart.addEventListener('click', function()
 
         for (let track of tracks) {
             let currentPosition = parseInt(track.dataset.position);
-            let speed = parseInt(track.dataset.speed);
+            let speed = track.dataset.speed / 10;
             
-            if (currentPosition < finishLinePosition) {
+            if (currentPosition < finishLinePosition + 15) {
                 currentPosition += speed;
                 track.dataset.position = currentPosition.toString();
                 track.style.transform = `translateX(${currentPosition}px)`;
@@ -235,25 +249,74 @@ buttonStart.addEventListener('click', function()
             }
         }
         
-        if (allFinished) {
-            raceInProgress = false;
-            buttonStart.disabled = false;
-            buttonInv.disabled = false;
-            buttonReset.disabled = false; 
-            animationId = null;
+ if (allFinished) {
+    raceInProgress = false;
+    buttonStart.disabled = false;
+    buttonInv.disabled = false;
+    buttonReset.disabled = false; 
+    animationId = null;
+    
+    const positions = [];
+    for (let track of tracks) {
+        const characterId = parseInt(track.dataset.characterId);
+        const position = parseInt(track.dataset.position);
+        const speed1 = parseFloat(track.dataset.speed);
+        positions.push({
+            character: characters[characterId],
+            position: position,
+            speed1: speed1
             
-            if (winnerTrack) {
-                const winnerId = parseInt(winnerTrack.dataset.characterId);
-                const winnerCharacter = charData.runners.find(c => c.id === winnerId);
-                
-                const resultsDiv = document.getElementById('results');
-                resultsDiv.innerHTML = `<h3>🏁 Победитель: ${winnerCharacter.name}!</h3>
-                                       <p>Скорость: ${winnerCharacter.speed}</p>
-                                       <p>Цвет: <span style="color:${winnerCharacter.color}">${winnerCharacter.color}</span></p>`;
-                
-                console.log(`Победитель: ${winnerCharacter.name}`);
-            }
-        } else {
+        });
+    }
+    positions.sort((a, b) => b.speed1 - a.speed1);
+    
+    const resultsDiv = document.getElementById('results');
+    let resultsHTML = '';
+    
+    if (positions.length > 0) {
+        resultsHTML += `
+            <div class="result-item">
+                <div class="user-avatar">
+                    <div class="avatar-img" style="background: linear-gradient(135deg, #FFD700, #FFA500); display: flex; align-items: center; justify-content: center; font-size: 20px;">🥇</div>
+                </div>
+                <div class="result-info">
+                    <div class="result-name">${positions[0].character.name}</div>
+                </div>
+            </div>`;
+    }
+    
+    if (positions.length > 1) {
+        resultsHTML += `
+            <div class="result-item">
+                <div class="user-avatar">
+                    <div class="avatar-img" style="background: linear-gradient(135deg, #C0C0C0, #A9A9A9); display: flex; align-items: center; justify-content: center; font-size: 20px;">🥈</div>
+                </div>
+                <div class="result-info">
+                    <div class="result-name">${positions[1].character.name}</div>
+                </div>
+            </div>`;
+    }
+    
+    if (positions.length > 2) {
+        resultsHTML += `
+            <div class="result-item">
+                <div class="user-avatar">
+                    <div class="avatar-img" style="background: linear-gradient(135deg, #CD7F32, #8B4513); display: flex; align-items: center; justify-content: center; font-size: 20px;">🥉</div>
+                </div>
+                <div class="result-info">
+                    <div class="result-name">${positions[2].character.name}</div>
+                </div>
+            </div>`;
+    }
+    
+    resultsDiv.innerHTML = resultsHTML;
+    
+    console.log('Результаты гонки:');
+    positions.forEach((pos, index) => {
+        console.log(`${index + 1} место: ${pos.character.name}`);
+    });
+}
+         else {
             animationId = requestAnimationFrame(moveTracks);
         }
     }
@@ -276,6 +339,10 @@ userPanel.innerHTML = `
     </div>
 `;
 document.body.appendChild(userPanel);
+
+const topPanel = document.querySelector('.topPanel');
+topPanel.appendChild(userPanel);
+
 
 /// тут линия финиша
 
