@@ -1,9 +1,3 @@
-const characters = [
-    { id: 1, name: "Спринтер", color: "#FF6B6B", speed: 8 },
-    { id: 2, name: "Марафонец", color: "#4ECDC4", speed: 6 },
-    { id: 3, name: "Чювак", color: "#FE6B6B", speed: 80 }
-];
-
 const container = document.getElementById('container');
 const buttonInv = document.getElementById('ButtonInv');
 const buttonStart = document.getElementById('ButtonStart');
@@ -11,6 +5,20 @@ const buttonReset = document.getElementById('ButtonReset');
 let raceInProgress = false;
 let isMenuOpened = false;
 let animationId = null;
+
+let charData;
+
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const response = await fetch('/chars');
+    if (!response.ok) throw new Error('Ошибка загрузки');
+
+    charData = await response.json();
+    console.log(charData.runners.find(c => c.id === 1).name);
+  } catch (err) {
+    console.error(err);
+  }
+});
 
 buttonInv.addEventListener('click', function()
 {
@@ -26,13 +34,15 @@ buttonInv.addEventListener('click', function()
     newDiv.id = 'menuDiv';
     document.body.appendChild(newDiv);
 
-    for(let i = 0; i < characters.length; i++)
+    for(let i = 1; i < charData.runners.length+1; i++)
     {
         const newMDiv = document.createElement('div');
         newMDiv.classList.add('characterInMenu');
         newMDiv.id = `char${i}`;
         newDiv.appendChild(newMDiv);
-        newMDiv.textContent = characters[i].name + " СКОРОЧТЬ!!: " + characters[i].speed;
+        const vak4 = charData.runners.find(c => c.id === i);
+        if(vak4){
+        newMDiv.textContent = vak4.name + " СКОРОЧТЬ!!: " + vak4.speed;
 
         const killButton = document.createElement("button");
         killButton.textContent = "X";
@@ -65,14 +75,14 @@ buttonInv.addEventListener('click', function()
                 newDiv2.classList.add('charOnTrack');
                 newDiv2.id = `char1${i}`;
                 newDiv2.dataset.characterId = i;
-                newDiv2.dataset.speed = characters[i].speed;
+                newDiv2.dataset.speed = vak4.speed;
                 newDiv2.dataset.position = "0";
                 newDiv.appendChild(newDiv2);
 
                 const newP = document.createElement('p');
                 newP.classList.add('charTextOnTrack');
                 newP.id = `charText${i}`;
-                newP.textContent = characters[i].name;
+                newP.textContent = vak4.name;
                 newDiv.appendChild(newP);
 
             }
@@ -91,6 +101,7 @@ buttonInv.addEventListener('click', function()
                 div.removeChild(document.getElementById(`track${i}`));
             }
         })
+    }
     }
 
     const generateButton = document.createElement('button');
@@ -117,7 +128,7 @@ buttonInv.addEventListener('click', function()
 
     })
 
- generateButton.addEventListener('click', function()
+generateButton.addEventListener('click', function()
 {
     const menuDiv = document.getElementById('menuDiv');
     
@@ -153,19 +164,6 @@ buttonInv.addEventListener('click', function()
 }); 
 
 })
-
-buttonInv.addEventListener('click', function()
-{
-    if(container.innerHTML)
-    {
-        for(let i = 0; i < characters.length; i++)
-        {
-            let char = container.getElementById(`track${i}`); 
-            // char.position = 500px;
-        }
-    }
-});
-
 
 buttonReset.addEventListener('click', function()
 {
@@ -246,7 +244,7 @@ buttonStart.addEventListener('click', function()
             
             if (winnerTrack) {
                 const winnerId = parseInt(winnerTrack.dataset.characterId);
-                const winnerCharacter = characters[winnerId];
+                const winnerCharacter = charData.runners.find(c => c.id === winnerId);
                 
                 const resultsDiv = document.getElementById('results');
                 resultsDiv.innerHTML = `<h3>🏁 Победитель: ${winnerCharacter.name}!</h3>
