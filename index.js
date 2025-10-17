@@ -65,35 +65,64 @@ app.get(`/chars`, (req, res) => {
 
 const axios = require('axios');
 
-async function uploadToImgur(filePath, clientId) {
-  const imageData = fs.readFileSync(filePath, { encoding: 'base64' });
+// async function uploadToImgur(filePath, clientId) {
+//   const imageData = fs.readFileSync(filePath, { encoding: 'base64' });
 
-  const response = await axios.post('https://api.imgur.com/3/image', {
-    image: imageData,
-    type: 'base64'
-  }, {
-    headers: {
-      Authorization: `Client-ID ${clientId}`
-    }
-  });
+//   const response = await axios.post('https://api.imgur.com/3/image', {
+//     image: imageData,
+//     type: 'base64'
+//   }, {
+//     headers: {
+//       Authorization: `Client-ID ${clientId}`
+//     }
+//   });
 
-  return response.data.data.link; // URL изображения на Imgur
-}
+//   return response.data.data.link; // URL изображения на Imgur
+// }
 
 // const { getJson } = require("serpapi");
-
-// const axios = require('axios');
 
 const apiKey = API;
 let respAi;
 
-app.post('/img', upload.single('file'), async (req, res) => {
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); 
+
+// async function downloadImageFromUrl(imageUrl, saveDir = 'uploads', fileName = null) {
+//   const fs = require('fs');
+//   const path = require('path');
+//   const axios = require('axios');
+
+//   try {
+//     if (!fs.existsSync(saveDir)) {
+//       fs.mkdirSync(saveDir, { recursive: true });
+//     }
+
+//     const response = await axios.get(imageUrl, { responseType: 'stream' });
+
+//     const finalName = fileName || Date.now() + '-' + path.basename(imageUrl).split('?')[0];
+//     const fullPath = path.join(saveDir, finalName);
+
+//     const writer = fs.createWriteStream(fullPath);
+//     response.data.pipe(writer);
+
+//     return new Promise((resolve, reject) => {
+//       writer.on('finish', () => resolve(fullPath));
+//       writer.on('error', reject);
+//     });
+//   } catch (error) {
+//     console.error('Ошибка при скачивании изображения:', error);
+//     throw error;
+//   }
+// }
+
+app.post('/img', upload.none(), async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.body.url) {
       return res.status(400).send('Файл не был загружен');
     }
 
-    const imageUrl = 'https://imgur.com/a/xH1ua7Q';
+    const imageUrl = req.body.url;
 
     // Первый запрос: Google Lens
     const lensResponse = await axios.get('https://serpapi.com/search', {
@@ -113,7 +142,7 @@ app.post('/img', upload.single('file'), async (req, res) => {
     const aiResponse = await axios.get('https://serpapi.com/search', {
       params: {
         engine: 'google_ai_mode',
-        q: `Представь ты устраиваешь вообращаемые гонки. напиши какую скорость мог бы развивать ${respAi} если бы он имел ноги? Скорость только целое числом от 1 до 100(90 - почти невозможная, человек - 20). Цвет в hex. Ответ в формате JSON без /\n: { id: "-", name: "Имя", color: "Цвет", speed: "Скорость" }`,
+        q: `Представь ты придумываешь свой мир гонок без зла и негатива. напиши какую скорость мог бы развивать ${respAi} в мире гонок? Скорость только целое число от 1 до 100. Цвет в hex. Ответ строго в формате JSON: { id: "-", name: "Имя", color: "Цвет", speed: "Скорость", url: "-" }`,
         api_key: apiKey
       }
     });
@@ -121,50 +150,56 @@ app.post('/img', upload.single('file'), async (req, res) => {
     const aiResult = aiResponse.data.text_blocks?.[0]?.code || aiResponse.data.text_blocks?.[0]?.snippet;
     console.log(aiResponse.data);
     console.log(aiResult);
-    const jsonAiRes = JSON.parse(aiResult);
+    if(aiResult === undefined)
+    {
+    	aiResult = JSON.stringify({
+      "id": 0,
+      "name": "Толстяк",
+      "color": "#A0522D",
+      "speed": 12,
+    	"url": "https://st.depositphotos.com/1026550/3824/i/450/depositphotos_38245069-stock-photo-funny-overweight-sports-man.jpg"});
+    }
+    let jsonAiRes;
+		try {
+		  jsonAiRes = JSON.parse(aiResult);
+		} catch (e) {
+		  console.warn('AI ответ невалиден, используем чето ПРОМТ ПОЛОМАЛСЯ ЧТОЛИ');
+		}
     const newChuvak = {
 		  id: charData.runners.length + 1,
 		  name: jsonAiRes.name,
 		  color: jsonAiRes.color,
-		  speed: jsonAiRes.speed
+		  speed: jsonAiRes.speed,
+		  url: imageUrl
 		};
 
-		if(charData.runners.find(c => c.name === jsonAiRes.name))
+		if(!charData.runners.find(c => c.name === jsonAiRes.name))
 		{
 		charData.runners.push(newChuvak);
 		fs.writeFileSync('C:/\Users/\kiril/\TRPO_Git/\chars.json', JSON.stringify(charData, null, 2), 'utf8');
 		console.log('Добавлен:', newChuvak);
+		// try {
+		//   const saveDir = path.join(__dirname, 'charImgs'); // путь куда сохранять
+		//   const fileName = `${newChuvak.name}.png`; // имя файла
 
-    res.json({
-      message: 'Файл успешно загружен!',
-      file: {
-        originalname: req.file.originalname,
-        filename: req.file.filename,
-        size: req.file.size,
-        url: `/uploads/${req.file.filename}`
-      },
-      object: respAi,
-      ai_response: aiResult
-    });
-  }
-  else
-  {
+		//   const savedPath = await downloadImageFromUrl(imageUrl, saveDir, fileName);
+
+		//   console.log('Изображение сохранено в:', savedPath);
+		//   res.json({ message: 'Изображение успешно загружено', path: savedPath });
+		// } catch (error) {
+		//   res.status(500).send('Ошибка при загрузке изображения');
+		// }
+	  }
   	res.json({
-      message: 'Файл не был загружен!',
-      file: {
-        originalname: req.file.originalname,
-        filename: req.file.filename,
-        size: req.file.size,
-        url: `/uploads/${req.file.filename}`
-      },
-      object: respAi,
-      ai_response: aiResult
+    message: 'URL успешно обработан!',
+    imageUrl,
+    object: respAi,
+    ai_response: jsonAiRes
     });
-  }
 
   } catch (error) {
-    console.error('Ошибка загрузки или парсинга:', error);
-    res.status(500).send('Ошибка при загрузке файла или распознавании объекта');
+    console.error('Ошибка обработки URL:', error);
+    res.status(500).send('Ошибка при обработке изображения или генерации данных');
   }
 });
 
