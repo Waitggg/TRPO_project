@@ -47,14 +47,14 @@ buttonInv.addEventListener('click', function()
         const charImage = document.createElement('img');
         charImage.src = vak4.url; 
         charImage.alt = vak4.name;
-        charImage.style.width = '50px';
-        charImage.style.height = '50px';
+        charImage.style.width = '200px';
+        charImage.style.height = '200px';
         charImage.style.objectFit = 'cover';
         charImage.style.borderRadius = '10px';
         charImage.style.marginBottom = '10px';
     
         const speedText = document.createElement('div');
-        speedText.textContent = `СКОРОСТЬ: ${vak4.speed}`;
+        speedText.textContent = `Имя БОЙЦА: ${vak4.name}\nСКОРОСТЬ: ${vak4.speed}`;
         speedText.style.marginBottom = '10px';
         
         newMDiv.appendChild(charImage);
@@ -95,6 +95,7 @@ buttonInv.addEventListener('click', function()
                 const newDiv2 = document.createElement('div');
                 newDiv2.classList.add('charOnTrack');
                 newDiv2.id = `char1${i}`;
+                newDiv2.style = `background: url('${vak4.url}');background-size: cover; background-repeat: no-repeat;`;
                 newDiv2.dataset.characterId = i;
                 newDiv2.dataset.speed = vak4.speed;
                 newDiv2.dataset.position = "0";
@@ -260,9 +261,7 @@ buttonReset.addEventListener('click', function()
  
     const resultsDiv = document.getElementById('results');
     const firstChild = resultsDiv.firstElementChild;
-    resultsDiv.innerHTML = '';
-    resultsDiv.appendChild(firstChild);
-    
+    resultsDiv.innerHTML = '';    
 
     finishLine.classList.remove('visible');
 })
@@ -332,7 +331,7 @@ buttonStart.addEventListener('click', function()
         positions.push({
             character: character,
             position: position,
-            speed1: speed1
+            speed1: speed1,
         });
     }
     
@@ -344,8 +343,8 @@ buttonStart.addEventListener('click', function()
     if (positions.length > 0) {
         resultsHTML += `
             <div class="result-item">
-                <div class="user-avatar">
-                    <div class="avatar-img" style="background: linear-gradient(135deg, #FFD700, #FFA500); display: flex; align-items: center; justify-content: center; font-size: 20px;">🥇</div>
+                <div class="user-avatar" style="background: url('${positions[0].character.url}'); background-size: cover; background-repeat: no-repeat;">
+                    <div class="avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 12px;">🥇</div>
                 </div>
                 <div class="result-info">
                     <div class="result-name">${positions[0].character.name}</div>
@@ -356,8 +355,8 @@ buttonStart.addEventListener('click', function()
     if (positions.length > 1) {
         resultsHTML += `
             <div class="result-item">
-                <div class="user-avatar">
-                    <div class="avatar-img" style="background: linear-gradient(135deg, #C0C0C0, #A9A9A9); display: flex; align-items: center; justify-content: center; font-size: 20px;">🥈</div>
+                <div class="user-avatar" style="background: url('${positions[1].character.url}'); background-size: cover; background-repeat: no-repeat;">
+                    <div class="avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 12px;">🥈</div>
                 </div>
                 <div class="result-info">
                     <div class="result-name">${positions[1].character.name}</div>
@@ -368,8 +367,8 @@ buttonStart.addEventListener('click', function()
     if (positions.length > 2) {
         resultsHTML += `
             <div class="result-item">
-                <div class="user-avatar">
-                    <div class="avatar-img" style="background: linear-gradient(135deg, #CD7F32, #8B4513); display: flex; align-items: center; justify-content: center; font-size: 20px;">🥉</div>
+                <div class="user-avatar" style="background: url('${positions[2].character.url}'); background-size: cover; background-repeat: no-repeat;">
+                    <div class="avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 12px;">🥉</div>
                 </div>
                 <div class="result-info">
                     <div class="result-name">${positions[2].character.name}</div>
