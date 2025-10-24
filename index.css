@@ -18,6 +18,15 @@ h5{
     margin: 0;
     text-align: center;
 }
+.Icon{
+    background: url('Icon.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 80px;
+    height: 80px;
+    margin-left: 20px; 
+}
 
 body {
     margin: 0;
@@ -77,14 +86,47 @@ body {
     align-content: center;
     background: #000000;
     border-radius: 20px;
-    padding: 15px;
-    padding-left: 20px;
+    padding: 22px;
+    padding-left: 55px;
     position: absolute;
     left: 0;
     bottom: 60px;
     transition: transform 0.1s linear;
 }
 
+.charOnTrack:hover {
+    filter: brightness(1.1);
+}
+
+.charOnTrack:active {
+    transform: scale(0.95) translateX(var(--current-position));
+}
+
+.charOnTrack.slowed {
+    filter: brightness(0.7) sepia(1) hue-rotate(-50deg);
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(var(--current-position)) rotate(0deg); }
+    25% { transform: translateX(var(--current-position)) rotate(-5deg); }
+    75% { transform: translateX(var(--current-position)) rotate(5deg); }
+}
+.charTextOnTrackSlowed
+{
+    background: #ffffffba;
+    border-radius: 10px;
+    padding: 3px 8px;
+    margin-inline: auto;
+    margin-bottom: -30px;
+    position: absolute;
+    left: 800px;
+    align-content: center;
+    bottom: 10px;
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
+}
 .charTextOnTrack{
     background: #ffffffba;
     border-radius: 20px;
@@ -146,7 +188,7 @@ body {
 
 button {
     background: #3c671d;
-    width: 100px;
+    width: auto;
     color: white;
     border: none;
     border-radius: 15px;
@@ -157,7 +199,7 @@ button {
 }
 
 button:hover {
-    background: #45a049;
+    background: #3333;
 }
 
 button:disabled {
@@ -345,12 +387,30 @@ button:disabled {
     margin-top: -20px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     background: #333333cf;
     padding: 20px;
     box-sizing: border-box;
     box-shadow: 0 4px 15px rgba(27, 36, 81, 0.733);
 }
+
+.topPanelEl {
+    position: relative;
+    left: 20px;
+    background: rgba(52, 68, 104, 0.309);
+    color: white;
+    border-radius: 25px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-right: 20px;
+}
+
 .user-status {
     color: #ccc;
     font-size: 12px;

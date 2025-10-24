@@ -183,6 +183,7 @@ buttonInv.addEventListener('click', function()
 
         killButton.addEventListener('click', function() {
             
+            alert(`ТЫ УБИЛ ${document.getElementById(`char${i}`).querySelector('img').alt}`);
             const formData = new FormData();
             formData.append('charName', document.getElementById(`char${i}`).querySelector('img').alt);
             fetch('/charDel', {
@@ -217,7 +218,6 @@ buttonInv.addEventListener('click', function()
                 finishLine.classList.remove('visible');
             }
             })
-            alert(`ТЫ УБИЛ ${document.getElementById(`char${i}`).querySelector('img').alt}`);
     }
     }
 

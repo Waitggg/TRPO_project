@@ -50,6 +50,14 @@ app.get('/game.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'game.js'));
 });
 
+app.get('/offline.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'offline.html'));
+});
+
+app.get('/game_offline.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'game_offline.js'));
+});
+
 app.get(`/chars`, (req, res) => {
 	res.sendFile(path.join(__dirname, 'chars.json'));
 });
@@ -200,6 +208,38 @@ app.post('/img', upload.none(), async (req, res) => {
   } catch (error) {
     console.error('Ошибка обработки URL:', error);
     res.status(500).send('Ошибка при обработке изображения или генерации данных');
+  }
+});
+
+app.post('/charDel', upload.none(), async (req, res) => {
+	try {
+
+	if(!req.body.charName){
+      return res.status(400).send('Json с персонажами не был загружен');
+    }
+
+    const name = req.body.charName;
+
+    const filePath = path.join('C:/Users/kiril/TRPO_Git/chars.json');
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    const json = JSON.parse(rawData);
+
+    const originalLength = json.runners.length;
+    json.runners = json.runners.filter(char => char.name !== name);
+    if (json.runners.length === originalLength) {
+      return res.status(404).send(`Персонаж "${name}" не найден`);
+    }
+
+    json.runners.sort((a, b) => a.id - b.id);
+    json.runners.forEach((char, index) => {
+      char.id = index + 1;
+    });
+
+    fs.writeFileSync(filePath, JSON.stringify(json, null, 2), 'utf8');
+    res.status(200).send(`Персонаж "${name}" успешно удалён`);    
+  } catch (error) {
+    console.error('Ошибка при удалении:', error);
+    res.status(500).send('Ошибка при удалении чето');
   }
 });
 
