@@ -58,6 +58,14 @@ app.get('/game_offline.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'game_offline.js'));
 });
 
+app.get('/top.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'top.html'));
+});
+
+app.get('/top.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'top.js'));
+});
+
 app.get(`/chars`, (req, res) => {
 	res.sendFile(path.join(__dirname, 'chars.json'));
 });
