@@ -3,12 +3,20 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const charJson = 'C:/\Users/\kiril/\TRPO_Git/\chars.json';
 const charData = JSON.parse(fs.readFileSync(charJson, 'utf8'));
 
 const app = express();
 const port = 3000;
+
+function hs256(message, secret) {
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(message);
+  const signature = hmac.digest('base64');
+  return signature.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
 app.use(express.static(path.join(__dirname, 'img')));
 
@@ -26,19 +34,21 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ 
-    storage: storage,
-    fileFilter: function (req, file, cb) {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Разрешены только изображения!'), false);
-        }
-    },
-    limits: {
-        fileSize: 20 * 1024 * 1024
-    }
-});
+// const upload = multer({ 
+//     storage: storage,
+//     fileFilter: function (req, file, cb) {
+//         if (file.mimetype.startsWith('image/')) {
+//             cb(null, true);
+//         } else {
+//             cb(new Error('Разрешены только изображения!'), false);
+//         }
+//     },
+//     limits: {
+//         fileSize: 20 * 1024 * 1024
+//     }
+// });
+
+const upload = multer();
 
 app.use(express.static('public'));
 
@@ -58,16 +68,112 @@ app.get('/game_offline.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'game_offline.js'));
 });
 
-app.get('/top.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'top.html'));
+app.get('/top.html', upload.none(), (req, res) => {
+     res.sendFile(path.join(__dirname, 'top.html'));
 });
+
+// app.get('/top.html', upload.none(), (req, res) => { // чето тут надо сделать чтобы переходилось и токен передавалось но впадлу
+// 	try {
+// 		if(req.body.token)
+// 		{
+// 			const token = req.body.token;
+
+// 	    const filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+// 	    const rawData = fs.readFileSync(filePath, 'utf8');
+// 	    const json = JSON.parse(rawData);
+	    
+// 	    const user = json.users.find(u => u.token === token);
+// 	    if(user)
+// 	    {
+// 	    		res.status(200).json({ success: true, username: user.username });   
+
+// 	    }
+// 	    else
+// 	    {
+// 	    		res.status(200).json({ success: false });   
+// 	    }
+
+// 		}
+
+    
+//     res.sendFile(path.join(__dirname, 'top.html'));
+//   } catch (error) {
+//     console.error('Ошибка при входе:', error);
+//     res.status(500).send('Ошибка при входе чето');
+//   }
+
+// });
 
 app.get('/top.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'top.js'));
 });
 
-app.get(`/chars`, (req, res) => {
-	res.sendFile(path.join(__dirname, 'chars.json'));
+// app.post(`/chars`, (req, res) => {
+// 	console.log(res.body.token);
+// 	if(req.body.token)
+// 	{
+// 		let filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+//     let rawData = fs.readFileSync(filePath, 'utf8');
+//     const usersJson = JSON.parse(rawData);
+//     const user = json.users.find(u => u.token === req.body.token);
+//     if(!user)
+//     {
+//       return res.status(400).send('Токен нето');	
+//     }
+
+// 		filePath = path.join('C:/Users/kiril/TRPO_Git/chars.json');
+//     rawData = fs.readFileSync(filePath, 'utf8');
+//     const charsJson = JSON.parse(rawData);
+//     let charsOfOwner = [];
+//    	for(let i = 1; i < charsJson.runners.length+1; i++)
+//     {
+//     	charsOfOwner[i-1] = json.users.find(c => c.owner === user.username);
+//   	}
+//   	console.log(charsOfOwner);
+//   	res.send(charsOfOwner);
+// 		//res.sendFile(path.join(__dirname, 'chars.json'));
+// 	}
+// 	else
+// 	{
+//       return res.status(400).send('Токен нето');
+// 	}
+// });
+
+app.post('/chars', upload.none(), (req, res) => {
+  console.log(req.body.token);
+  if (req.body.token) {
+    const usersPath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const usersRaw = fs.readFileSync(usersPath, 'utf8');
+    const usersJson = JSON.parse(usersRaw);
+
+    const user = usersJson.users.find(u => u.token === req.body.token);
+    if (!user) {
+			return res.status(400).json({ success: false, message: 'Токен нето' });
+    }
+
+    console.log(user);
+
+    const charsPath = path.join('C:/Users/kiril/TRPO_Git/chars.json');
+    const charsRaw = fs.readFileSync(charsPath, 'utf8');
+    const charsJson = JSON.parse(charsRaw);
+
+    const charsOfOwner = charsJson.runners.filter(c => c.owner === user.username);
+    console.log(charsOfOwner);
+    // res.json(charsOfOwner);
+
+    res.json({
+    success: true,
+    message: 'Все классно обработано все ок!',
+    data: charsOfOwner,
+    });
+
+  } else {
+			return res.status(400).json({ success: false, message: 'Токен нето' });
+  }
+});
+
+app.get('/allChars', (req, res) => {
+		res.sendFile(path.join(__dirname, 'chars.json'));
 });
 
 // app.post('/chars/add', express.json(), (req, res) => {
@@ -248,6 +354,76 @@ app.post('/charDel', upload.none(), async (req, res) => {
   } catch (error) {
     console.error('Ошибка при удалении:', error);
     res.status(500).send('Ошибка при удалении чето');
+  }
+});
+
+app.post('/login', upload.none(), async (req, res) => {
+	try {
+
+	if(!req.body.username || !req.body.password){
+      return res.status(400).send('Вы нето ввели!!!');
+    }
+
+    const username = req.body.username;
+    const password = req.body.password;
+
+    const filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    const json = JSON.parse(rawData);
+    
+    const user = json.users.find(u => u.username === username && u.password === password);
+    if(user)
+    {
+    		res.status(200).json({ success: true });   
+
+    }
+    else
+    {
+    		res.status(200).json({ success: false });   
+    }
+
+    // fs.writeFileSync(filePath, JSON.stringify(json, null, 2), 'utf8');
+    // res.status(200).send(`Персонаж "${name}" успешно удалён`);    
+  } catch (error) {
+    console.error('Ошибка при входе:', error);
+    res.status(500).send('Ошибка при входе чето');
+  }
+});
+
+app.post('/signup', upload.none(), async (req, res) => {
+  try {
+		if(!req.body.username || !req.body.password){
+      return res.status(400).send('Вы нето ввели!!!');
+    }
+
+    const username = req.body.username;
+    const password = req.body.password;
+
+    const filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    const json = JSON.parse(rawData);
+    
+    const user = json.users.find(u => u.username === username);
+
+    if(user)
+    {
+    	  return res.status(400).json({ success: false });
+    }
+    else
+    {
+    		const newChuvak = {
+				  username: username,
+				  password: password,
+				  token: hs256(username+password, secret)
+				};
+				json.users.push(newChuvak);
+				fs.writeFileSync('C:/Users/kiril/TRPO_Git/users.json', JSON.stringify(json, null, 2), 'utf8');
+    		return res.status(200).json({ success: true });
+    }
+
+  } catch (error) {
+    console.error('Ошибка обработки URL:', error);
+    res.status(500).send('Ошибка при обработке изображения или генерации данных');
   }
 });
 
