@@ -8,8 +8,57 @@ const crypto = require('crypto');
 const charJson = 'C:/\Users/\kiril/\TRPO_Git/\chars.json';
 const charData = JSON.parse(fs.readFileSync(charJson, 'utf8'));
 
-const app = express();
+const http = require('http');
+const WebSocket = require('ws');
 const port = 3000;
+
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+const gameChars = {
+  characters: []
+};
+
+wss.on('connection', (client) => {
+  console.log('Клиент подключился');
+
+  client.on('message', (msg) => {
+    const data = JSON.parse(msg);
+
+    if (data.type === 'addCharacter') {
+      gameChars.characters.push(data.character);
+
+      // Рассылаем всем, кроме отправителя
+      wss.clients.forEach(other => {
+        if (other !== client && other.readyState === WebSocket.OPEN) {
+          other.send(JSON.stringify({
+            type: 'characterAdded',
+            character: data.character
+          }));
+        }
+      });
+
+    }
+    if(data.type === 'deleteCharacter')
+    {
+				gameChars.characters = gameChars.characters.filter(char => char.name !== data.character.name); 
+				   		
+    	  wss.clients.forEach(other => {
+        if (other !== client && other.readyState === WebSocket.OPEN) {
+          other.send(JSON.stringify({
+            type: 'characterDeleted',
+            character: data.character
+          }));
+        }
+      });
+    }
+  });
+});
+
+server.listen(3000, () => {
+  console.log('Сервер слушает на порту 3000');
+});
 
 function hs256(message, secret) {
   const hmac = crypto.createHmac('sha256', secret);
@@ -139,8 +188,15 @@ app.get('/top.js', (req, res) => {
 // 	}
 // });
 
+app.get('/gameChars', (req, res) => {
+    res.json({
+    success: true,
+    message: 'Все классно обработано все ок!',
+    gameChars: gameChars,
+    });
+  });
+
 app.post('/chars', upload.none(), (req, res) => {
-  console.log(req.body.token);
   if (req.body.token) {
     const usersPath = path.join('C:/Users/kiril/TRPO_Git/users.json');
     const usersRaw = fs.readFileSync(usersPath, 'utf8');
@@ -240,8 +296,18 @@ app.use(express.json());
 
 app.post('/img', upload.none(), async (req, res) => {
   try {
+  	if (req.body.token) {
+    const usersPath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const usersRaw = fs.readFileSync(usersPath, 'utf8');
+    const usersJson = JSON.parse(usersRaw);
+
+    const user = usersJson.users.find(u => u.token === req.body.token);
+    if (!user) {
+			return res.status(400).json({ success: false, message: 'Токен нето' });
+    }
+
     if (!req.body.url) {
-      return res.status(400).send('Файл не был загружен');
+      return res.status(400).send('Картинка не была загружена');
     }
 
     const imageUrl = req.body.url;
@@ -279,7 +345,8 @@ app.post('/img', upload.none(), async (req, res) => {
       "name": "Толстяк",
       "color": "#A0522D",
       "speed": 12,
-    	"url": "https://st.depositphotos.com/1026550/3824/i/450/depositphotos_38245069-stock-photo-funny-overweight-sports-man.jpg"});
+    	"url": "https://st.depositphotos.com/1026550/3824/i/450/depositphotos_38245069-stock-photo-funny-overweight-sports-man.jpg",
+    	"owner": user.username});
     }
     let jsonAiRes;
 		try {
@@ -292,7 +359,8 @@ app.post('/img', upload.none(), async (req, res) => {
 		  name: jsonAiRes.name,
 		  color: jsonAiRes.color,
 		  speed: jsonAiRes.speed,
-		  url: imageUrl
+		  url: imageUrl,
+		  owner: user.username
 		};
 
 		if(!charData.runners.find(c => c.name === jsonAiRes.name))
@@ -319,7 +387,7 @@ app.post('/img', upload.none(), async (req, res) => {
     ai_response: jsonAiRes
     });
 
-  } catch (error) {
+  }} catch (error) {
     console.error('Ошибка обработки URL:', error);
     res.status(500).send('Ошибка при обработке изображения или генерации данных');
   }
@@ -442,9 +510,9 @@ app.use((error, req, res, next) => {
     res.status(500).send('Что-то пошло не так');
 });
 
-app.listen(port, (err) => {
-    if (err) {
-        return console.log('Error: ', err);
-    }
-    console.log(`Express server is listening on ${port}`);
-});
+// app.listen(port, (err) => {
+//     if (err) {
+//         return console.log('Error: ', err);
+//     }
+//     console.log(`Express server is listening on ${port}`);
+// });

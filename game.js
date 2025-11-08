@@ -22,12 +22,22 @@ const secret = "52";
 
 let charData;
 
-// function hs256(message, secret) {
-//   const hmac = crypto.createHmac('sha256', secret);
-//   hmac.update(message);
-//   const signature = hmac.digest('base64');
-//   return signature.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-// }
+const gameChars = {
+  characters: []
+};
+
+const socket = new WebSocket('ws://localhost:3000');
+
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'characterAdded') {
+    addCharacterToTrack(data.character); // функция отрисовки
+  }
+  if (data.type === 'characterDeleted')
+  {
+    deleteCharacterFromTrack(data.character);
+  }
+};
 
 async function hs256(message, secret) {
   const enc = new TextEncoder();
@@ -50,6 +60,95 @@ async function hs256(message, secret) {
     .replace(/=+$/, '');
 
   return base64;
+}
+
+function addCharacterToTrack(vak4)
+{
+
+    if(allFinished == true)
+            {
+                const tracks = container.getElementsByClassName('charOnTrack');
+                for (let track of tracks) {
+                    track.dataset.position = "0";
+                    track.dataset.finished = "false"; 
+                    track.style.transform = 'translateX(0px)';
+                }
+
+
+                const resultsDiv = document.getElementById('results');
+                const firstChild = resultsDiv.firstElementChild;
+                resultsDiv.innerHTML = '';    
+
+             //   finishLine.classList.remove('visible');
+                allFinished = false;
+            }
+
+                function removeDefaultRacer() {
+                const defaultTrack = document.getElementById('track0');
+                const defaultChar = document.getElementById('char0');
+                const defaultText = document.getElementById('charText0');
+
+                if (defaultTrack) {
+                    defaultTrack.remove();
+                }
+                if (defaultChar) {
+                    defaultChar.remove();
+                }
+                if (defaultText) {
+                    defaultText.remove();
+                }
+
+                raceInProgress = false;
+                allFinished = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+            }
+                removeDefaultRacer();
+            if(!document.getElementById(`track${vak4.name}`))//track{i} на track{vak4.name}
+            {
+                const newDiv = document.createElement('div');
+                newDiv.classList.add('track');
+                newDiv.id = `track${vak4.name}`;
+                container.appendChild(newDiv);
+
+                const newDiv2 = document.createElement('div');
+                newDiv2.dataset.name = vak4.name; 
+                newDiv2.classList.add('charOnTrack');
+                newDiv2.id = `char1${vak4.name}`;
+                newDiv2.style = `background: url('${vak4.url}');background-size: cover; background-repeat: no-repeat;`;
+                newDiv2.dataset.characterId = vak4.name;
+                newDiv2.dataset.speed = vak4.speed;
+                newDiv2.dataset.position = "0";
+                newDiv2.dataset.slowed = "false"; 
+                newDiv.appendChild(newDiv2);
+
+                const newP = document.createElement('p');
+                newP.classList.add('charTextOnTrack');
+                newP.id = `charText${vak4.name}`;
+                newP.textContent = vak4.name;
+                newDiv.appendChild(newP);
+
+                finishLine.classList.add('visible');
+                finishLine.style.right = '130px';
+
+            }
+
+}
+
+function deleteCharacterFromTrack(vak4)
+{
+    if(document.getElementById(`track${vak4.name}`))
+    {
+        const div = document.getElementById('container');
+        div.removeChild(document.getElementById(`track${vak4.name}`));
+    }
+    const remainingTracks = container.getElementsByClassName('track').length;
+
+    if (remainingTracks === 0) {
+        finishLine.classList.remove('visible');
+    }
 }
 
 container.addEventListener('click', function(event) {
@@ -289,13 +388,36 @@ function showAuthModal() {
     }
 
 window.addEventListener('DOMContentLoaded', async () => {
-    function enableAttentionEffect() {
+
+function syncChars(){
+    fetch('/gameChars', {
+    method: 'GET',
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if(gameChars.characters != data.gameChars.characters)
+            {
+                gameChars.characters = data.gameChars.characters;
+                for(char of gameChars.characters)
+                {
+                    addCharacterToTrack(char);
+                }
+            }
+        } else {
+           console.log(data.message || 'Ошибка синхронизации онлайна');
+        }
+    })
+    .catch(error => {
+        console.log(error);
+    });
+}
+
+function enableAttentionEffect() {
     if (isFirstClick) {
         buttonInv.classList.add('attention');
     }
 }
-
-
 
 function createDefaultRacer() {
 
@@ -407,7 +529,7 @@ function resetAutoRace() {
 
     try {
         // тут запрос при открытии окна!
-
+        syncChars();
         showAuthModal();
         createDefaultRacer();
         startAutoRace();
@@ -444,14 +566,14 @@ buttonInv.addEventListener('click', function()
 
     for(let i = 1; i < charData.length+1; i++)
     {
+
+        const vak4 = charData.find(c => c.id === i);
         const newMDiv = document.createElement('div');
         newMDiv.classList.add('characterInMenu');
-        newMDiv.id = `char${i}`;
+        newMDiv.id = `char${vak4.name}`;
         newDiv.appendChild(newMDiv);
-        const vak4 = charData.find(c => c.id === i);
         if(vak4){
-       newMDiv.innerHTML = '';
-        
+        newMDiv.innerHTML = '';
         const charImage = document.createElement('img');
         charImage.src = vak4.url; 
         charImage.alt = vak4.name;
@@ -471,7 +593,7 @@ buttonInv.addEventListener('click', function()
         const killButton = document.createElement("button");
         killButton.textContent = "X";
         killButton.classList.add('killButton');
-        killButton.id = `killButton${i}`;
+        killButton.id = `killButton${vak4.name}`;
         newMDiv.appendChild(killButton);
 
          const buttonContainer = document.createElement('div');
@@ -481,93 +603,30 @@ buttonInv.addEventListener('click', function()
         addButton.textContent = 'Добавить';
         addButton.classList.add('addButton');
         buttonContainer.appendChild(addButton);
-        addButton.id = `addButton${i}`;
+        addButton.id = `addButton${vak4.name}`;
 
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Удалить';
         deleteButton.classList.add('deleteButton');
         buttonContainer.appendChild(deleteButton);
-        deleteButton.id = `deleteButton${i}`;
+        deleteButton.id = `deleteButton${vak4.name}`;
 
         newMDiv.appendChild(buttonContainer);
 
         addButton.addEventListener('click', function()
         {
-            if(allFinished == true)
-            {
-                const tracks = container.getElementsByClassName('charOnTrack');
-                for (let track of tracks) {
-                    track.dataset.position = "0";
-                    track.dataset.finished = "false"; 
-                    track.style.transform = 'translateX(0px)';
-                }
+            socket.send(JSON.stringify({
+              type: 'addCharacter',
+              character: vak4
+            }));
 
-
-                const resultsDiv = document.getElementById('results');
-                const firstChild = resultsDiv.firstElementChild;
-                resultsDiv.innerHTML = '';    
-
-             //   finishLine.classList.remove('visible');
-                allFinished = false;
-            }
-
-                function removeDefaultRacer() {
-                const defaultTrack = document.getElementById('track0');
-                const defaultChar = document.getElementById('char0');
-                const defaultText = document.getElementById('charText0');
-
-                if (defaultTrack) {
-                    defaultTrack.remove();
-                }
-                if (defaultChar) {
-                    defaultChar.remove();
-                }
-                if (defaultText) {
-                    defaultText.remove();
-                }
-
-                raceInProgress = false;
-                allFinished = false;
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                    animationId = null;
-                }
-            }
-                removeDefaultRacer();
-            if(!document.getElementById(`track${i}`))
-            {
-                const newDiv = document.createElement('div');
-                newDiv.classList.add('track');
-                newDiv.id = `track${i}`;
-                container.appendChild(newDiv);
-
-                const newDiv2 = document.createElement('div');
-                newDiv2.dataset.name = vak4.name; 
-                newDiv2.classList.add('charOnTrack');
-                newDiv2.id = `char1${i}`;
-                newDiv2.style = `background: url('${vak4.url}');background-size: cover; background-repeat: no-repeat;`;
-                newDiv2.dataset.characterId = i;
-                newDiv2.dataset.speed = vak4.speed;
-                newDiv2.dataset.position = "0";
-                newDiv2.dataset.slowed = "false"; 
-                newDiv.appendChild(newDiv2);
-
-                const newP = document.createElement('p');
-                newP.classList.add('charTextOnTrack');
-                newP.id = `charText${i}`;
-                newP.textContent = vak4.name;
-                newDiv.appendChild(newP);
-
-                finishLine.classList.add('visible');
-                finishLine.style.right = '130px';
-
-            }
+            addCharacterToTrack(vak4);
         })
 
         killButton.addEventListener('click', function() {
             
             const formData = new FormData();
-            formData.append('charName', document.getElementById(`char${i}`).querySelector('img').alt);
+            formData.append('charName', document.getElementById(`char${vak4.name}`).querySelector('img').alt);
             fetch('/charDel', {
               method: 'POST',
               body: formData
@@ -580,26 +639,24 @@ buttonInv.addEventListener('click', function()
               console.error('Ошибка удаления:', error);
             });
 
-            [`char${i}`, `track${i}`, `charText${i}`].forEach(id => 
+            [`char${vak4.name}`, `track${vak4.name}`, `charText${vak4.name}`].forEach(id => 
                 document.getElementById(id)?.remove()
             );
             const remainingTracks = container.getElementsByClassName('track').length;
             if (remainingTracks === 0) {
                 finishLine.classList.remove('visible');
                 }
-            alert(`ТЫ УБИЛ ${document.getElementById(`char${i}`).querySelector('img').alt}`);
+            alert(`ТЫ УБИЛ ${document.getElementById(`char${vak4.name}`).querySelector('img').alt}`);
             });
+
             deleteButton.addEventListener('click', function()
             {
-                if(document.getElementById(`track${i}`))
-                {
-                    const div = document.getElementById('container');
-                    div.removeChild(document.getElementById(`track${i}`));
-                }
-                const remainingTracks = container.getElementsByClassName('track').length;
-            if (remainingTracks === 0) {
-                finishLine.classList.remove('visible');
-            }
+                socket.send(JSON.stringify({
+                  type: 'deleteCharacter',
+                  character: vak4
+                }));
+
+                deleteCharacterFromTrack(vak4);
             })
     }
     }
@@ -656,6 +713,7 @@ generateButton.addEventListener('click', function()
         if (imageUrl) {
             const formData = new FormData();
             formData.append('url', imageUrl);
+            formData.append('token', currentUserToken);
             fetch('/img', {
               method: 'POST',
               body: formData
@@ -675,17 +733,17 @@ generateButton.addEventListener('click', function()
 });
 
 
-buttonInv.addEventListener('click', function()
-{
-    if(container.innerHTML)
-    {
-        for(let i = 0; i < charData.length+1; i++)
-        {
-            let char = document.getElementById(`track${i}`); 
-            // char.position = 500px;
-        }
-    }
-});
+// buttonInv.addEventListener('click', function()
+// {
+//     if(container.innerHTML)
+//     {
+//         for(let i = 0; i < charData.length+1; i++)
+//         {
+//             let char = document.getElementById(`track${vak4.name}`); 
+//             // char.position = 500px;
+//         }
+//     }
+// });
 
 
 buttonReset.addEventListener('click', function()
@@ -792,7 +850,7 @@ buttonStart.addEventListener('click', function() {
                     const realSpeed = parseInt(track.dataset.speed);
                     const visualSpeed = getVisualSpeed(realSpeed);
                     const character = charData.find(c => c.id === parseInt(track.dataset.characterId));
-                    charText.textContent = `${character.name} (Скорость: ${visualSpeed})`;
+                    charText.textContent = `${track.dataset.name} (Скорость: ${visualSpeed})`;
                 }
         }
     }
@@ -812,7 +870,7 @@ buttonStart.addEventListener('click', function() {
         {
             const charText = document.getElementById(`charText${track.dataset.characterId}`);
             const character = charData.find(c => c.id === parseInt(track.dataset.characterId));
-            charText.textContent = `${character.name}`;
+            charText.textContent = `${track.dataset.name}`;
         }
 
         finishTimes.sort((a, b) => a.finishTime - b.finishTime);
@@ -830,11 +888,11 @@ buttonStart.addEventListener('click', function() {
                 const place = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
                 resultsHTML += `
                     <div class="result-item">
-                        <div class="user-avatar" style="background: url('${character.url}'); background-size: cover; background-repeat: no-repeat;">
+                        <div class="user-avatar" style="background: url('${track.dataset.url}'); background-size: cover; background-repeat: no-repeat;">
                             <div class="avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 12px;">${place}</div>
                         </div>
                         <div class="result-info">
-                            <div class="result-name">${character.name}</div>
+                            <div class="result-name">${track.dataset.name}</div>
                             <div class="result-time">Время: ${time} сек.</div>
                         </div>
                     </div>`;
