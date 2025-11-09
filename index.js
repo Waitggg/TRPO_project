@@ -17,7 +17,9 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const gameChars = {
-  characters: []
+  characters: [],
+  players: [],
+  readyPlayers: []
 };
 
 wss.on('connection', (client) => {
@@ -27,14 +29,22 @@ wss.on('connection', (client) => {
     const data = JSON.parse(msg);
 
     if (data.type === 'addCharacter') {
+			let filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+			let rawData = fs.readFileSync(filePath, 'utf8');
+			const usersJson = JSON.parse(rawData);
+			const user = usersJson.users.find(u => u.username === data.character.owner);
+
       gameChars.characters.push(data.character);
+      gameChars.players.push(user);
+
 
       // Рассылаем всем, кроме отправителя
       wss.clients.forEach(other => {
         if (other !== client && other.readyState === WebSocket.OPEN) {
           other.send(JSON.stringify({
             type: 'characterAdded',
-            character: data.character
+            character: data.character,
+            userToken: user.token
           }));
         }
       });
@@ -42,16 +52,48 @@ wss.on('connection', (client) => {
     }
     if(data.type === 'deleteCharacter')
     {
+    		let filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+				let rawData = fs.readFileSync(filePath, 'utf8');
+				const usersJson = JSON.parse(rawData);
+				const user = json.users.find(u => u.username === data.character.owner);
+
 				gameChars.characters = gameChars.characters.filter(char => char.name !== data.character.name); 
+				gameChars.players = gameChars.players.filter(player => player.name !== user.username); 
+				gameChars.readyPlayers = gameChars.readyPlayers.filter(player => player.name !== user.username); 
 				   		
     	  wss.clients.forEach(other => {
         if (other !== client && other.readyState === WebSocket.OPEN) {
           other.send(JSON.stringify({
             type: 'characterDeleted',
-            character: data.character
+            character: data.character,
+            userToken: user.token
           }));
         }
       });
+    }
+    if(data.type === 'startRace')
+    {
+    	  let filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+				let rawData = fs.readFileSync(filePath, 'utf8');
+				const usersJson = JSON.parse(rawData);
+				const user = usersJson.users.find(u => u.token === data.token);
+
+			  if (!gameChars.readyPlayers.find(u => u.token === user.token)) {
+			    gameChars.readyPlayers.push(user);
+			  }
+
+				if(gameChars.readyPlayers.length >= 2)
+				{
+    	  wss.clients.forEach(other => {
+        if (other.readyState === WebSocket.OPEN) {
+          other.send(JSON.stringify({
+            type: 'startRace',
+            userToken: user.token
+          }));
+        }
+      });
+    	}
+
     }
   });
 });
@@ -189,10 +231,14 @@ app.get('/top.js', (req, res) => {
 // });
 
 app.get('/gameChars', (req, res) => {
+	const playersTokens = gameChars.players.map(player => player.token);
+	const readyPlayersTokens = gameChars.readyPlayers.map(player => player.token);
     res.json({
     success: true,
     message: 'Все классно обработано все ок!',
-    gameChars: gameChars,
+    characters: gameChars.characters,
+    players: playersTokens,
+    readyPlayers: readyPlayersTokens
     });
   });
 
