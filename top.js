@@ -18,51 +18,73 @@ window.addEventListener('DOMContentLoaded', async () => {
     {
         return;
     }
-    const cardDiv = document.createElement('div');
-    cardDiv.style.background = "#363B49";
-    cardDiv.style.borderRadius = "10px";
-    cardDiv.style.padding = "1%";
-    cardDiv.style.width = "1799px";
-    cardDiv.style.height = "150px";
-    cardDiv.style.margin = "auto";
-    cardDiv.style.marginBottom = '10px';
-    cardDiv.style.marginLeft = "-1px";
-    cardDiv.style.border = "1px solid #85878F";
-    cardDiv.style.display = "flex";
 
-    const charImage = document.createElement('img');
-    charImage.src = vak4.url; 
-    charImage.alt = vak4.name;
-    charImage.style.width = '123px';
-    charImage.style.height = '120px';
-    charImage.style.objectFit = 'cover';
-    charImage.style.borderRadius = '10px';
-    charImage.style.marginBottom = '10px';
-    charImage.style.border = "1px solid #85878F";
+    const formData = new FormData();
+    formData.append("token", vak4.owner);
+    fetch('/getUsernameByToken', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const username = data.username;
+            const cardDiv = document.createElement('div');
 
-    const indexText = document.createElement('div');
-    indexText.textContent = `№${index+1}`;
-    indexText.style.marginRight = '20px';
-    indexText.style.background = '#363B49';
-    indexText.style.border = "1px solid #96979ED1";
-    indexText.style.borderRadius = '10px';
-    indexText.style.alignContent = 'center';
-    indexText.style.height = '30px';
-    indexText.style.width = '31px';
-    indexText.style.textAlign = 'center';
-    indexText.style.fontSize = '18px';
+            cardDiv.style.background = "#363B49";
+            cardDiv.style.borderRadius = "10px";
+            cardDiv.style.padding = "1%";
+            cardDiv.style.width = "1799px";
+            cardDiv.style.height = "150px";
+            cardDiv.style.margin = "auto";
+            cardDiv.style.marginBottom = '10px';
+            cardDiv.style.marginLeft = "-1px";
+            cardDiv.style.border = "1px solid #85878F";
+            cardDiv.style.display = "flex";
+
+            const charImage = document.createElement('img');
+            charImage.src = vak4.url; 
+            charImage.alt = vak4.name;
+            charImage.style.width = '123px';
+            charImage.style.height = '120px';
+            charImage.style.objectFit = 'cover';
+            charImage.style.borderRadius = '10px';
+            charImage.style.marginBottom = '10px';
+            charImage.style.border = "1px solid #85878F";
+
+            const indexText = document.createElement('div');
+            indexText.textContent = `№${index+1}`;
+            indexText.style.marginRight = '20px';
+            indexText.style.background = '#363B49';
+            indexText.style.border = "1px solid #96979ED1";
+            indexText.style.borderRadius = '10px';
+            indexText.style.alignContent = 'center';
+            indexText.style.height = '30px';
+            indexText.style.width = '31px';
+            indexText.style.textAlign = 'center';
+            indexText.style.fontSize = '18px';
+            
+            const nameText = document.createElement('div');
+            nameText.textContent = `Имя БОЙЦА: ${vak4.name}\n Владелец: ${username}`;
+            nameText.style.whiteSpace = 'pre-line';
+            nameText.style.marginBottom = '10px';
+            nameText.style.paddingLeft = '10px';
+            nameText.style.fontSize = 'xx-large';
+
+            container.appendChild(cardDiv);
+            cardDiv.appendChild(indexText);
+            cardDiv.appendChild(charImage);
+            cardDiv.appendChild(nameText);
+
+        } else {
+            errorDiv.textContent = data.message || 'Ошибка четотам';
+        }
+    })
+    .catch(error => {
+        console.log(error);
+    });
+
     
-    const nameText = document.createElement('div');
-    nameText.textContent = `Имя БОЙЦА: ${vak4.name}\n Владелец: ${vak4.owner}`;
-    nameText.style.whiteSpace = 'pre-line';
-    nameText.style.marginBottom = '10px';
-    nameText.style.paddingLeft = '10px';
-    nameText.style.fontSize = 'xx-large';
-
-    container.appendChild(cardDiv);
-    cardDiv.appendChild(indexText);
-    cardDiv.appendChild(charImage);
-    cardDiv.appendChild(nameText);
     });
   } catch (err) {
     console.error(err);

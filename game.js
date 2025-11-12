@@ -28,16 +28,57 @@ const gameChars = {
   readyPlayers: []
 };
 
+const finishLine = document.createElement('div');
+finishLine.classList.add('finish-line');
+finishLine.id = 'globalFinishLine';
+container.appendChild(finishLine);
+container.style.position = 'relative';
+
+let participants = []; // массив объектов: { token, name, speed, position, finished }
+
 const socket = new WebSocket('ws://localhost:3000');
 
+let lastPositions = {};
+
+function animateToPosition(el, from, to) {
+  const duration = 100; // мс
+  const start = performance.now();
+
+  function step(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const current = from + (to - from) * progress;
+    el.style.transform = `translateX(${current}px)`;
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
 socket.onmessage = (event) => {
+  syncChars()
   const data = JSON.parse(event.data);
   if (data.type === 'characterAdded') {
-    gameChars.players.push(data.userToken);
-    addCharacterToTrack(data.character);
+    if (!gameChars.players.includes(data.character.owner)) {
+        gameChars.players.push(data.character.owner);
+      }
+
+      participants.push({
+        token: data.character.owner,
+        name: data.character.name,
+        speed: data.character.speed,
+        position: 0,
+        finished: false,
+        url: data.character.url
+      });
+    // gameChars.players.push(data.userToken);
+    // addCharacterToTrack(data.character);
   }
   if (data.type === 'characterDeleted')
   {
+    syncChars();
     gameChars.characters = gameChars.characters.filter(char => char.name !== data.character.name); 
     gameChars.players = gameChars.players.filter(char => char.token !== data.userToken);   
     gameChars.readyPlayers = gameChars.readyPlayers.filter(char => char.token !== data.userToken);     
@@ -45,9 +86,53 @@ socket.onmessage = (event) => {
   }
   if (data.type === 'startRace')
   {
-       startRace();
+    console.log('началось');
+
+    // startRace();
+  }
+  if (data.type === 'raceUpdate') {
+    syncChars();
+    data.positions.forEach(p => {
+      const el =  document.getElementById(`char1${p.name}`);
+      if (!el) return;
+
+      const from = lastPositions[p.token] ?? 0;
+      const to = p.position;
+
+      animateToPosition(el, from, to);
+      lastPositions[p.token] = to;
+    });
+  }
+
+  if (data.type === 'raceFinished') {
+    syncChars();
+    showResults(data.results);
   }
 };
+
+function showResults(results) {
+  const resultsDiv = document.getElementById('results');
+  let resultsHTML = '';
+
+  results.slice(0, 3).forEach((finisher, index) => {
+    const time = (finisher.finishTime / 1000).toFixed(2); // уже готовое значение
+    const place = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+
+    resultsHTML += `
+      <div class="result-item">
+        <div class="user-avatar" style="background: url('${finisher.url}'); background-size: cover;">
+          <div class="avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 12px;">${place}</div>
+        </div>
+        <div class="result-info">
+          <div class="result-name">${finisher.name}</div>
+          <div class="result-time">Время: ${time} сек.</div>
+        </div>
+      </div>`;
+  });
+
+  resultsDiv.innerHTML = resultsHTML;
+}
+
 
 async function hs256(message, secret) {
   const enc = new TextEncoder();
@@ -248,8 +333,9 @@ function startRace() {
   // Инициализация треков
   for (let track of tracks) {
     track.dataset.finished = 'false';
-    track.dataset.position = parseFloat(track.dataset.position) || 0;
+    track.dataset.position = 0; // тут убрал ||
     track.dataset.speed = parseInt(track.dataset.speed) || 10;
+    console.log(track.dataset);
   }
 
   function getVisualSpeed(realSpeed) {
@@ -286,7 +372,7 @@ function startRace() {
           finishTime,
           characterId: parseInt(track.dataset.characterId),
           name: track.dataset.name,
-          url: track.dataset.url
+          url: track.dataset.url// тут url не работает вроде
         });
 
         console.log(`Финиш: ${track.dataset.name} — ${(finishTime - startTime)}ms`);
@@ -302,13 +388,14 @@ function startRace() {
     }
 
     if (finishedCount === totalTracks) {
+      console.log('raceend');
       raceInProgress = false;
       allFinished = true;
       buttonStart.disabled = false;
       buttonInv.disabled = false;
       buttonReset.disabled = false;
 
-      cancelAnimationFrame(animationId);
+      // cancelAnimationFrame(animationId);
       animationId = null;
 
       for (let track of tracks) {
@@ -320,8 +407,10 @@ function startRace() {
       }
 
       showResults(finishTimes, startTime);
+      console.log('pocazal');
     } else {
       animationId = requestAnimationFrame(moveTracks);
+      console.log('reqanim');
     }
   }
 
@@ -351,6 +440,7 @@ function startRace() {
 
   animationId = requestAnimationFrame(moveTracks);
 }
+
 
 
 function addCharacterToTrack(vak4)
@@ -413,6 +503,7 @@ function addCharacterToTrack(vak4)
                 newDiv2.dataset.speed = vak4.speed;
                 newDiv2.dataset.position = "0";
                 newDiv2.dataset.slowed = "false"; 
+                newDiv2.dataset.url = vak4.url;
                 newDiv.appendChild(newDiv2);
 
                 const newP = document.createElement('p');
@@ -713,8 +804,18 @@ function syncChars(){
         console.log(error);
     });
 }
+// async function syncChars() {
+//   const res = await fetch('/gameChars');
+//   const data = await res.json();
+//   gameChars.characters = data.characters;
+//   gameChars.players = data.players;
+//   gameChars.readyPlayers = data.readyPlayers;
+//   participants = data.participants;
+// }
+
 
 window.addEventListener('DOMContentLoaded', async () => {
+syncChars();
 
 function enableAttentionEffect() {
     if (isFirstClick) {
@@ -847,6 +948,11 @@ function resetAutoRace() {
 
 buttonInv.addEventListener('click', function()
 {
+    if(!currentUserToken)
+    {
+        alert("Сначала войдите в аккаунт!");
+        return;
+    }
     if (isFirstClick) {
         buttonInv.classList.remove('attention');
         if (blinkInterval) {
@@ -858,7 +964,6 @@ buttonInv.addEventListener('click', function()
     if(isMenuOpened) 
         {
             buttonInv.disabled = true;
-            buttonReset.disabled = true;
             buttonStart.disabled = true;
         }
     const newDiv = document.createElement('div');
@@ -950,7 +1055,7 @@ buttonInv.addEventListener('click', function()
                 }
             alert(`ТЫ УБИЛ ${document.getElementById(`char${vak4.name}`).querySelector('img').alt}`);
             });
-
+            syncChars();
             deleteButton.addEventListener('click', function()
             {
                 socket.send(JSON.stringify({
@@ -983,7 +1088,6 @@ buttonInv.addEventListener('click', function()
         document.body.removeChild(menuDiv);
         isMenuOpened = false;
         buttonInv.disabled = false;
-        buttonReset.disabled = false;
         buttonStart.disabled = false;
 
     })
@@ -1049,27 +1153,6 @@ generateButton.addEventListener('click', function()
 // });
 
 
-buttonReset.addEventListener('click', function()
-{
-    if (isMenuOpened || raceInProgress) { 
-        return;
-    }
-    
-    const tracks = container.getElementsByClassName('charOnTrack');
-    for (let track of tracks) {
-        track.dataset.position = "0";
-        track.style.transform = 'translateX(0px)';
-    }
-    
- 
-    const resultsDiv = document.getElementById('results');
-    const firstChild = resultsDiv.firstElementChild;
-    resultsDiv.innerHTML = '';    
-
-    // finishLine.classList.remove('visible');
-    allFinished = false;
-})
-
 let raceStartTime = 0;
 
 buttonStart.addEventListener('click', function() {
@@ -1088,7 +1171,7 @@ buttonStart.addEventListener('click', function() {
         gameChars.readyPlayers.push(currentUserToken);
         console.log(gameChars.readyPlayers);
         socket.send(JSON.stringify({
-          type: 'startRace',
+          type: 'readyToRace',
           token: currentUserToken
         })); 
         syncChars();
@@ -1156,11 +1239,7 @@ userPanel.addEventListener('mouseleave', function() {
 /// тут линия финиша
 
 
-const finishLine = document.createElement('div');
-finishLine.classList.add('finish-line');
-finishLine.id = 'globalFinishLine';
-container.appendChild(finishLine);
-container.style.position = 'relative';
+
 
 
 // тут кнопка выхода

@@ -8,6 +8,8 @@ const crypto = require('crypto');
 const charJson = 'C:/\Users/\kiril/\TRPO_Git/\chars.json';
 const charData = JSON.parse(fs.readFileSync(charJson, 'utf8'));
 
+const PARTOFPATH = "C:/Users/kiril/TRPO_Git/";
+
 const http = require('http');
 const WebSocket = require('ws');
 const port = 3000;
@@ -22,6 +24,130 @@ const gameChars = {
   readyPlayers: []
 };
 
+
+let raceInProgress = false;
+let raceInterval = null;
+let finishLine = 1650; // пикселей
+let participants = []; // массив объектов: { token, name, speed, position, finished }
+
+wss.on('connection', socket => {
+  socket.on('message', msg => {
+    const data = JSON.parse(msg);
+
+    if (data.type === 'readyToRace') {
+      if (data.token && !gameChars.readyPlayers.includes(data.token)) {
+        gameChars.readyPlayers.push(data.token);
+      }
+
+      // Когда все готовы — запускаем гонку
+      if (gameChars.readyPlayers.length === gameChars.players.length && gameChars.players.length > 0) {
+        console.log('Все готовы, запускаем гонку');
+			if (
+			  gameChars.readyPlayers.length === gameChars.players.length &&
+			  gameChars.players.length > 0 &&
+			  participants.length > 0
+			) {
+			  startRaceOnServer();
+			}
+      }
+    }
+  });
+});
+
+function startRaceOnServer() {
+  if (raceInProgress) {
+    console.log('Гонка уже идёт');
+    return;
+  }
+
+  if (participants.length === 0) {
+    console.log('Нет участников');
+    return;
+  }
+
+  raceInProgress = true;
+  participants.forEach(p => {
+    p.position = 0;
+    p.finished = false;
+    p.finishTime = null;
+  });
+
+  const startTime = Date.now();
+
+  raceInterval = setInterval(() => {
+    let finishedCount = 0;
+    let topFinishers = [];
+
+    participants.forEach((p,index) => {
+      if (p.finished) {
+      	if(index <= 3)
+      	{
+      		topFinishers[index] = p;
+      	}
+        finishedCount++;
+        return;
+      }
+
+
+      const visualSpeed = getVisualSpeed(p.speed);
+      p.position += Math.max(10,p.speed+visualSpeed);
+      console.log(p.name, p.position, Math.max(10,p.speed+visualSpeed))
+
+      if (p.position >= finishLine) {
+        p.position = finishLine;
+        p.finished = true;
+        p.finishTime = Date.now() - startTime;
+        finishedCount++;
+      }
+    });
+
+    // Рассылаем текущие позиции всем клиентам
+    wss.clients.forEach(cl => {
+      if (cl.readyState === WebSocket.OPEN) {
+        cl.send(JSON.stringify({
+          type: 'raceUpdate',
+          positions: participants.map(p => ({
+            token: p.token,
+            name: p.name,
+            position: p.position,
+            finished: p.finished
+          }))
+        }));
+      }
+    });
+  
+
+    // Если все финишировали — завершить гонку
+    if (finishedCount === participants.length) {
+      clearInterval(raceInterval);
+      raceInProgress = false;
+
+      const results = participants
+        .filter(p => p.finished)
+        .sort((a, b) => a.finishTime - b.finishTime);
+
+      wss.clients.forEach(cl => {
+        if (cl.readyState === WebSocket.OPEN) {
+          cl.send(JSON.stringify({
+            type: 'raceFinished',
+            results,
+            topFinishers
+          }));
+        }
+      });
+
+      console.log('Гонка завершена');
+    }
+  }, 20); // каждые 100 мс
+}
+
+function getVisualSpeed(baseSpeed) {
+  // const randomChange = Math.floor(Math.random() * 3) + 1;
+  const randomChange = Math.floor(Math.random() * 21) - 10;
+  // return Math.max(1, baseSpeed + randomChange);
+  return randomChange;
+}
+
 wss.on('connection', (client) => {
   console.log('Клиент подключился');
 
@@ -29,13 +155,25 @@ wss.on('connection', (client) => {
     const data = JSON.parse(msg);
 
     if (data.type === 'addCharacter') {
-			let filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+			let filePath = path.join(`${PARTOFPATH}users.json`);
 			let rawData = fs.readFileSync(filePath, 'utf8');
 			const usersJson = JSON.parse(rawData);
-			const user = usersJson.users.find(u => u.username === data.character.owner);
+			const user = usersJson.users.find(u => u.token === data.character.owner);
 
       gameChars.characters.push(data.character);
-      gameChars.players.push(user);
+      if(!gameChars.players.includes(user.token))
+      {
+      	gameChars.players.push(user.token);
+    	}
+
+      participants.push({
+		  token: data.character.owner,
+		  name: data.character.name,
+		  speed: data.character.speed,
+		  position: 0,
+		  finished: false,
+		  url: data.character.url
+		});
 
 
       // Рассылаем всем, кроме отправителя
@@ -52,10 +190,10 @@ wss.on('connection', (client) => {
     }
     if(data.type === 'deleteCharacter')
     {
-    		let filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    		let filePath = path.join(`${PARTOFPATH}users.json`);
 				let rawData = fs.readFileSync(filePath, 'utf8');
 				const usersJson = JSON.parse(rawData);
-				const user = json.users.find(u => u.username === data.character.owner);
+				const user = usersJson.users.find(u => u.token === data.character.owner);
 
 				gameChars.characters = gameChars.characters.filter(char => char.name !== data.character.name); 
 				gameChars.players = gameChars.players.filter(player => player.name !== user.username); 
@@ -73,28 +211,28 @@ wss.on('connection', (client) => {
     }
     if(data.type === 'startRace')
     {
-    	  let filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    	  let filePath = path.join(`${PARTOFPATH}users.json`);
 				let rawData = fs.readFileSync(filePath, 'utf8');
 				const usersJson = JSON.parse(rawData);
 				const user = usersJson.users.find(u => u.token === data.token);
 
 			  if (!gameChars.readyPlayers.find(u => u.token === user.token)) {
-			    gameChars.readyPlayers.push(user);
+			    gameChars.readyPlayers.push(user.token);
 			  }
 
-				if(gameChars.readyPlayers.length >= 2)
+				if(gameChars.readyPlayers.length > gameChars.players.length / 2)
 				{
-    	  wss.clients.forEach(other => {
-        if (other.readyState === WebSocket.OPEN) {
-          other.send(JSON.stringify({
+    	  wss.clients.forEach(cl => {
+        if (cl.readyState === WebSocket.OPEN) {
+          cl.send(JSON.stringify({
             type: 'startRace',
             userToken: user.token
           }));
         }
       });
     	}
-
     }
+
   });
 });
 
@@ -231,20 +369,21 @@ app.get('/top.js', (req, res) => {
 // });
 
 app.get('/gameChars', (req, res) => {
-	const playersTokens = gameChars.players.map(player => player.token);
-	const readyPlayersTokens = gameChars.readyPlayers.map(player => player.token);
+	// const playersTokens = gameChars.players.map(player => player.token);
+	// const readyPlayersTokens = gameChars.readyPlayers.map(player => player.token);
     res.json({
     success: true,
     message: 'Все классно обработано все ок!',
     characters: gameChars.characters,
-    players: playersTokens,
-    readyPlayers: readyPlayersTokens
+    players: gameChars.players,
+    readyPlayers: gameChars.readyPlayers,
+    participants: participants
     });
   });
 
 app.post('/chars', upload.none(), (req, res) => {
   if (req.body.token) {
-    const usersPath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const usersPath = path.join(`${PARTOFPATH}users.json`);
     const usersRaw = fs.readFileSync(usersPath, 'utf8');
     const usersJson = JSON.parse(usersRaw);
 
@@ -255,11 +394,11 @@ app.post('/chars', upload.none(), (req, res) => {
 
     console.log(user);
 
-    const charsPath = path.join('C:/Users/kiril/TRPO_Git/chars.json');
+    const charsPath = path.join(`${PARTOFPATH}chars.json`);
     const charsRaw = fs.readFileSync(charsPath, 'utf8');
     const charsJson = JSON.parse(charsRaw);
 
-    const charsOfOwner = charsJson.runners.filter(c => c.owner === user.username);
+    const charsOfOwner = charsJson.runners.filter(c => c.owner === user.token);
     console.log(charsOfOwner);
     // res.json(charsOfOwner);
 
@@ -343,7 +482,7 @@ app.use(express.json());
 app.post('/img', upload.none(), async (req, res) => {
   try {
   	if (req.body.token) {
-    const usersPath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const usersPath = path.join(`${PARTOFPATH}users.json`);
     const usersRaw = fs.readFileSync(usersPath, 'utf8');
     const usersJson = JSON.parse(usersRaw);
 
@@ -382,6 +521,7 @@ app.post('/img', upload.none(), async (req, res) => {
     });
 
     const aiResult = aiResponse.data.text_blocks?.[0]?.code || aiResponse.data.text_blocks?.[0]?.snippet;
+    aiResult.speed = parseInt(aiResponse.data.text_blocks?.[0]?.code?.speed || aiResponse.data.text_blocks?.[0]?.snippet?.speed, 10);
     console.log(aiResponse.data);
     console.log(aiResult);
     if(aiResult === undefined)
@@ -392,7 +532,7 @@ app.post('/img', upload.none(), async (req, res) => {
       "color": "#A0522D",
       "speed": 12,
     	"url": "https://st.depositphotos.com/1026550/3824/i/450/depositphotos_38245069-stock-photo-funny-overweight-sports-man.jpg",
-    	"owner": user.username});
+    	"owner": user.token});
     }
     let jsonAiRes;
 		try {
@@ -406,7 +546,7 @@ app.post('/img', upload.none(), async (req, res) => {
 		  color: jsonAiRes.color,
 		  speed: jsonAiRes.speed,
 		  url: imageUrl,
-		  owner: user.username
+		  owner: user.token
 		};
 
 		if(!charData.runners.find(c => c.name === jsonAiRes.name))
@@ -448,7 +588,7 @@ app.post('/charDel', upload.none(), async (req, res) => {
 
     const name = req.body.charName;
 
-    const filePath = path.join('C:/Users/kiril/TRPO_Git/chars.json');
+    const filePath = path.join(`${PARTOFPATH}chars.json`);
     const rawData = fs.readFileSync(filePath, 'utf8');
     const json = JSON.parse(rawData);
 
@@ -481,7 +621,7 @@ app.post('/login', upload.none(), async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
 
-    const filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const filePath = path.join(`${PARTOFPATH}users.json`);
     const rawData = fs.readFileSync(filePath, 'utf8');
     const json = JSON.parse(rawData);
     
@@ -504,6 +644,30 @@ app.post('/login', upload.none(), async (req, res) => {
   }
 });
 
+app.post('/getUsernameByToken', upload.none(), async (req, res) =>
+{
+	if(!req.body.token){
+      return res.status(400).send('Вы нето ввели!!!');
+    }
+
+    const token = req.body.token;
+
+    const filePath = path.join(`${PARTOFPATH}users.json`);
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    const json = JSON.parse(rawData);
+    
+    const user = json.users.find(u => u.token === token);
+    if(user)
+    {
+    		res.status(200).json({ success: true,  username: user.username });   
+
+    }
+    else
+    {
+    		res.status(200).json({ success: false });   
+    }
+});
+
 app.post('/signup', upload.none(), async (req, res) => {
   try {
 		if(!req.body.username || !req.body.password){
@@ -513,7 +677,7 @@ app.post('/signup', upload.none(), async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
 
-    const filePath = path.join('C:/Users/kiril/TRPO_Git/users.json');
+    const filePath = path.join(`${PARTOFPATH}users.json`);
     const rawData = fs.readFileSync(filePath, 'utf8');
     const json = JSON.parse(rawData);
     
@@ -531,7 +695,7 @@ app.post('/signup', upload.none(), async (req, res) => {
 				  token: hs256(username+password, secret)
 				};
 				json.users.push(newChuvak);
-				fs.writeFileSync('C:/Users/kiril/TRPO_Git/users.json', JSON.stringify(json, null, 2), 'utf8');
+				fs.writeFileSync(`${PARTOFPATH}users.json`, JSON.stringify(json, null, 2), 'utf8');
     		return res.status(200).json({ success: true });
     }
 

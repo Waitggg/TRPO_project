@@ -1,15 +1,155 @@
+//const { createElement } = require("react");
+// const crypto = require('crypto');
 const container = document.getElementById('container');
 const buttonInv = document.getElementById('ButtonInv');
+buttonInv.classList.add('ButtonInv');
 const buttonStart = document.getElementById('ButtonStart');
 const buttonReset = document.getElementById('ButtonReset');
 let raceInProgress = false;
 let isMenuOpened = false;
 let animationId = null;
 let clickCooldown = false;
+let allFinished = false;
 const slowDownDuration = 1000; // 1 секунда замедления
 const clickDelay = 2000; // 2 сек. делэя
+let lastSpeedUpdateTime = 0;
+const speedUpdateInterval = 3000; // Обновлять скорость раз в 2 секунды
+let currentVisualSpeeds = {};
+let isFirstClick = true;
+let blinkInterval;
+let currentUserToken = ""; 
+const secret = "52";
 
 let charData;
+
+const gameChars = {
+  characters: []
+};
+
+const socket = new WebSocket('ws://localhost:3000');
+
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'characterAdded') {
+    addCharacterToTrack(data.character); // функция отрисовки
+  }
+  if (data.type === 'characterDeleted')
+  {
+    deleteCharacterFromTrack(data.character);
+  }
+};
+
+async function hs256(message, secret) {
+  const enc = new TextEncoder();
+  const keyData = enc.encode(secret);
+  const msgData = enc.encode(message);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  return base64;
+}
+
+function addCharacterToTrack(vak4)
+{
+
+    if(allFinished == true)
+            {
+                const tracks = container.getElementsByClassName('charOnTrack');
+                for (let track of tracks) {
+                    track.dataset.position = "0";
+                    track.dataset.finished = "false"; 
+                    track.style.transform = 'translateX(0px)';
+                }
+
+
+                const resultsDiv = document.getElementById('results');
+                const firstChild = resultsDiv.firstElementChild;
+                resultsDiv.innerHTML = '';    
+
+             //   finishLine.classList.remove('visible');
+                allFinished = false;
+            }
+
+                function removeDefaultRacer() {
+                const defaultTrack = document.getElementById('track0');
+                const defaultChar = document.getElementById('char0');
+                const defaultText = document.getElementById('charText0');
+
+                if (defaultTrack) {
+                    defaultTrack.remove();
+                }
+                if (defaultChar) {
+                    defaultChar.remove();
+                }
+                if (defaultText) {
+                    defaultText.remove();
+                }
+
+                raceInProgress = false;
+                allFinished = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+            }
+                removeDefaultRacer();
+            if(!document.getElementById(`track${vak4.name}`))//track{i} на track{vak4.name}
+            {
+                const newDiv = document.createElement('div');
+                newDiv.classList.add('track');
+                newDiv.id = `track${vak4.name}`;
+                container.appendChild(newDiv);
+
+                const newDiv2 = document.createElement('div');
+                newDiv2.dataset.name = vak4.name; 
+                newDiv2.classList.add('charOnTrack');
+                newDiv2.id = `char1${vak4.name}`;
+                newDiv2.style = `background: url('${vak4.url}');background-size: cover; background-repeat: no-repeat;`;
+                newDiv2.dataset.characterId = vak4.name;
+                newDiv2.dataset.speed = vak4.speed;
+                newDiv2.dataset.position = "0";
+                newDiv2.dataset.slowed = "false"; 
+                newDiv.appendChild(newDiv2);
+
+                const newP = document.createElement('p');
+                newP.classList.add('charTextOnTrack');
+                newP.id = `charText${vak4.name}`;
+                newP.textContent = vak4.name;
+                newDiv.appendChild(newP);
+
+                finishLine.classList.add('visible');
+                finishLine.style.right = '130px';
+
+            }
+
+}
+
+function deleteCharacterFromTrack(vak4)
+{
+    if(document.getElementById(`track${vak4.name}`))
+    {
+        const div = document.getElementById('container');
+        div.removeChild(document.getElementById(`track${vak4.name}`));
+    }
+    const remainingTracks = container.getElementsByClassName('track').length;
+
+    if (remainingTracks === 0) {
+        finishLine.classList.remove('visible');
+    }
+}
 
 container.addEventListener('click', function(event) {
     function slowDownCharacter(charElement) {
@@ -24,6 +164,9 @@ container.addEventListener('click', function(event) {
         newP1.id = `charTextSlowed${charElement.dataset.characterId}`;
         newP1.textContent = `Игрок: Замедлил ${charElement.dataset.name}-а на ${slowDownDuration/1000} сек.`;
         
+        const charPosition = parseFloat(charElement.dataset.position);
+        newP1.style.setProperty('--char-position', `${charPosition}px`);
+
         const track = charElement.closest('.track');
         if (track) {
             const oldMessage = document.getElementById(newP1.id);
@@ -32,9 +175,7 @@ container.addEventListener('click', function(event) {
             }
             track.appendChild(newP1);
         }
-        
-        console.log(`Замедление: ${originalSpeed} -> ${slowedSpeed}`);
-        
+                
         setTimeout(() => {
             charElement.dataset.speed = originalSpeed;
             charElement.dataset.slowed = 'false';
@@ -73,21 +214,344 @@ container.addEventListener('click', function(event) {
     }, clickDelay);
 });
 
+function showAuthModal() {
+        const shadowing = document.createElement('div');
+        shadowing.classList.add('shadowing');
+        shadowing.id = 'authShadowing';
+        
+        const authContainer = document.createElement('div');
+        authContainer.classList.add('authContainer');
+        authContainer.id = 'authContainer';
+        
+        authContainer.innerHTML = `
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Вход</button>
+                <button class="auth-tab" data-tab="signup">Регистрация</button>
+            </div>
+            
+            <div class="auth-content">
+                <div id="loginForm" class="auth-form active">
+                    <h3>Авторизация</h3>
+                    <input type="text" id="loginUsername" class="auth-input" placeholder="Логин">
+                    <input type="password" id="loginPassword" class="auth-input" placeholder="Пароль">
+                    <button id="loginSubmit" class="auth-submit">Войти</button>
+                    <div id="loginError" class="auth-error"></div>
+                </div>
+                
+                <div id="signupForm" class="auth-form">
+                    <h3>Регистрация</h3>
+                    <input type="text" id="signupUsername" class="auth-input" placeholder="Логин">
+                    <input type="password" id="signupPassword" class="auth-input" placeholder="Пароль">
+                    <input type="password" id="signupConfirmPassword" class="auth-input" placeholder="Повторите пароль">
+                    <button id="signupSubmit" class="auth-submit">Зарегистрироваться</button>
+                    <div id="signupError" class="auth-error"></div>
+                </div>
+            </div>
+            
+            <button id="authSkip" class="auth-skip">Пропустить</button>
+        `;
+        
+        document.body.appendChild(shadowing);
+        document.body.appendChild(authContainer);
+        
+        const tabs = authContainer.querySelectorAll('.auth-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                authContainer.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+                
+                this.classList.add('active');
+                document.getElementById(tabName + 'Form').classList.add('active');
+            });
+        });
+        
+        document.getElementById('loginSubmit').addEventListener('click', function() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorDiv = document.getElementById('loginError');
+            
+            if (!username || !password) {
+                errorDiv.textContent = 'Заполните все поля';
+                return;
+            }
+            const formData = new FormData();
+            formData.append("username", username);
+            formData.append("password", password);
+            fetch('/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeAuthModal();
+                    if (document.querySelector('.user-name')) {
+                        document.querySelector('.user-name').textContent = username;
+                    }
+                    // currentUserToken = await hs256(username+password, secret);
+                    hs256(username + password, secret).then(token => {
+                    currentUserToken = token;
+                    console.log(currentUserToken);
 
+                    //formData
+                    const formData = new FormData();
+                    formData.append('token', currentUserToken);
+                    fetch('/chars', {
+                      method: 'POST',
+                      body: formData
+                    }).then(response => response.json())
+            .       then(data => {
+                    if (data.success) {
+                        charData = data.data;
+                        // charData.sort((a, b) => a.id - b.id);
+                        charData.forEach((char, index) => {
+                          char.id = index + 1;
+                        });
+                        errorDiv.textContent = 'Все ок.';
+                    } else {
+                        errorDiv.textContent = data.message || 'Ошибка получения бойцов';
+                    }
+            })
+            .catch(error => {
+                console.log(error);
+                errorDiv.textContent = 'Ошибка соединения';
+            });
+                    });
+
+                    // const response = await fetch('/chars');
+                    // if (!response.ok) throw new Error('Ошибка загрузки');
+                    // charData = await response.json();
+
+
+                } else {
+                    errorDiv.textContent = data.message || 'Ошибка входа';
+                }
+            })
+            .catch(error => {
+                errorDiv.textContent = 'Ошибка соединения';
+            });
+        });
+        
+        document.getElementById('signupSubmit').addEventListener('click', function() {
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            // const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
+            const errorDiv = document.getElementById('signupError');
+            
+            if (!username || !password) {
+                errorDiv.textContent = 'Заполните все поля';
+                return;
+            }
+            
+            // if (password !== confirmPassword) {
+            //     errorDiv.textContent = 'Пароли не совпадают';
+            //     return;
+            // }
+            
+            // if (password.length < 4) {
+            //     errorDiv.textContent = 'Пароль должен быть не менее 4 символов';
+            //     return;
+            // }
+
+            const formData = new FormData();
+            formData.append("username", username);
+            formData.append("password", password); 
+            fetch('/signup', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    errorDiv.textContent = 'Регистрация успешна! Теперь войдите.';
+                    tabs[0].click();
+                } else {
+                    errorDiv.textContent = data.message || 'Ошибка регистрации';
+                }
+            })
+            .catch(error => {
+                console.log(error);
+                errorDiv.textContent = 'Ошибка соединения';
+            });
+        });
+        
+        document.getElementById('authSkip').addEventListener('click', function() {
+            closeAuthModal();
+        });
+        
+        function closeAuthModal() {
+            document.body.removeChild(shadowing);
+            document.body.removeChild(authContainer);
+        }
+    }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const response = await fetch('/chars');
-    if (!response.ok) throw new Error('Ошибка загрузки');
 
-    charData = await response.json();
-  } catch (err) {
-    console.error(err);
-  }
+function syncChars(){
+    fetch('/gameChars', {
+    method: 'GET',
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if(gameChars.characters != data.gameChars.characters)
+            {
+                gameChars.characters = data.gameChars.characters;
+                for(char of gameChars.characters)
+                {
+                    addCharacterToTrack(char);
+                }
+            }
+        } else {
+           console.log(data.message || 'Ошибка синхронизации онлайна');
+        }
+    })
+    .catch(error => {
+        console.log(error);
+    });
+}
+
+function enableAttentionEffect() {
+    if (isFirstClick) {
+        buttonInv.classList.add('attention');
+    }
+}
+
+function createDefaultRacer() {
+
+    const defaultRunner =  
+    {
+      "id": 0,
+      "name": "Default runner",
+      "color": "#FF7B6B",
+      "speed": 15,
+      "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1sk_eXgKrVebI7H_1NMwLb8YAasI1s8FDdQ&s"
+    }
+
+    const trackDiv = document.createElement('div');
+    trackDiv.classList.add('track');
+    trackDiv.id = 'track0';
+    container.appendChild(trackDiv);
+
+    const charDiv = document.createElement('div');
+    charDiv.dataset.name = defaultRunner.name;
+    charDiv.classList.add('charOnTrack');
+    charDiv.id = 'char0';
+    charDiv.style = `background: url('${defaultRunner.url}'); background-size: cover; background-repeat: no-repeat;`;
+    charDiv.dataset.characterId = "0";
+    charDiv.dataset.speed = defaultRunner.speed;
+    charDiv.dataset.position = "0";
+    charDiv.dataset.slowed = "false";
+    trackDiv.appendChild(charDiv);
+
+    const nameP = document.createElement('p');
+    nameP.classList.add('charTextOnTrack');
+    nameP.id = 'charText0';
+    nameP.textContent = defaultRunner.name;
+    trackDiv.appendChild(nameP);
+
+    finishLine.classList.add('visible');
+    finishLine.style.right = '130px';
+
+    return defaultRunner;
+}
+
+function startAutoRace() {
+    if (raceInProgress) return;
+
+    const tracks = document.getElementsByClassName('charOnTrack');
+    const finishLinePosition = container.offsetWidth - 200;
+
+    raceInProgress = true;
+    allFinished = false;
+
+    const startTime = Date.now();
+    let finishedCount = 0;
+    const totalTracks = tracks.length;
+
+    function autoMoveTracks() {
+        if (!raceInProgress) return;
+
+        let allFinishedNow = false;
+
+        for (let track of tracks) {
+            if (track.dataset.finished === 'true') continue;
+
+            let currentPosition = parseFloat(track.dataset.position);
+            let speed = parseInt(track.dataset.speed) / 10;
+
+            if (currentPosition < finishLinePosition) {
+                currentPosition += speed;
+
+                if (currentPosition >= finishLinePosition) {
+                    currentPosition = finishLinePosition;
+                    track.dataset.finished = 'true';
+                    finishedCount++;
+
+                    console.log(`Финиш! ${track.dataset.name}`);
+                }
+
+                track.dataset.position = currentPosition;
+                track.style.transform = `translateX(${currentPosition}px)`;
+            }
+        }
+
+        allFinishedNow = (finishedCount === totalTracks);
+
+        if (allFinishedNow) {
+            raceInProgress = false;
+            allFinished = true;
+
+            setTimeout(() => {
+                resetAutoRace();
+                startAutoRace(); 
+            }, 3000);
+
+        } else {
+            animationId = requestAnimationFrame(autoMoveTracks);
+        }
+    }
+
+    autoMoveTracks();
+}
+
+function resetAutoRace() {
+    const tracks = container.getElementsByClassName('charOnTrack');
+    for (let track of tracks) {
+        track.dataset.position = "0";
+        track.dataset.finished = "false";
+        track.style.transform = 'translateX(0px)';
+    }
+    allFinished = false;
+}
+
+    try {
+        // тут запрос при открытии окна!
+        syncChars();
+        showAuthModal();
+        createDefaultRacer();
+        startAutoRace();
+        enableAttentionEffect();
+
+    } catch (err) {
+        console.error(err);
+        showAuthModal();
+        createDefaultRacer();
+        startAutoRace();
+    }
 });
 
 buttonInv.addEventListener('click', function()
 {
+    if (isFirstClick) {
+        buttonInv.classList.remove('attention');
+        if (blinkInterval) {
+            clearInterval(blinkInterval);
+        }
+        isFirstClick = false;
+    }
     isMenuOpened = true;
     if(isMenuOpened) 
         {
@@ -100,21 +564,21 @@ buttonInv.addEventListener('click', function()
     newDiv.id = 'menuDiv';
     document.body.appendChild(newDiv);
 
-    for(let i = 1; i < charData.runners.length+1; i++)
+    for(let i = 1; i < charData.length+1; i++)
     {
+
+        const vak4 = charData.find(c => c.id === i);
         const newMDiv = document.createElement('div');
         newMDiv.classList.add('characterInMenu');
-        newMDiv.id = `char${i}`;
+        newMDiv.id = `char${vak4.name}`;
         newDiv.appendChild(newMDiv);
-        const vak4 = charData.runners.find(c => c.id === i);
         if(vak4){
-       newMDiv.innerHTML = '';
-        
+        newMDiv.innerHTML = '';
         const charImage = document.createElement('img');
         charImage.src = vak4.url; 
         charImage.alt = vak4.name;
-        charImage.style.width = '200px';
-        charImage.style.height = '200px';
+        charImage.style.width = '224px';
+        charImage.style.height = '215px';
         charImage.style.objectFit = 'cover';
         charImage.style.borderRadius = '10px';
         charImage.style.marginBottom = '10px';
@@ -129,7 +593,7 @@ buttonInv.addEventListener('click', function()
         const killButton = document.createElement("button");
         killButton.textContent = "X";
         killButton.classList.add('killButton');
-        killButton.id = `killButton${i}`;
+        killButton.id = `killButton${vak4.name}`;
         newMDiv.appendChild(killButton);
 
          const buttonContainer = document.createElement('div');
@@ -139,53 +603,30 @@ buttonInv.addEventListener('click', function()
         addButton.textContent = 'Добавить';
         addButton.classList.add('addButton');
         buttonContainer.appendChild(addButton);
-        addButton.id = `addButton${i}`;
+        addButton.id = `addButton${vak4.name}`;
 
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Удалить';
         deleteButton.classList.add('deleteButton');
         buttonContainer.appendChild(deleteButton);
-        deleteButton.id = `deleteButton${i}`;
+        deleteButton.id = `deleteButton${vak4.name}`;
 
         newMDiv.appendChild(buttonContainer);
 
         addButton.addEventListener('click', function()
         {
-            if(!document.getElementById(`track${i}`))
-            {
-                const newDiv = document.createElement('div');
-                newDiv.classList.add('track');
-                newDiv.id = `track${i}`;
-                container.appendChild(newDiv);
+            socket.send(JSON.stringify({
+              type: 'addCharacter',
+              character: vak4
+            }));
 
-                const newDiv2 = document.createElement('div');
-                newDiv2.dataset.name = vak4.name; 
-                newDiv2.classList.add('charOnTrack');
-                newDiv2.id = `char1${i}`;
-                newDiv2.style = `background: url('${vak4.url}');background-size: cover; background-repeat: no-repeat;`;
-                newDiv2.dataset.characterId = i;
-                newDiv2.dataset.speed = vak4.speed;
-                newDiv2.dataset.position = "0";
-                newDiv2.dataset.slowed = "false"; 
-                newDiv.appendChild(newDiv2);
-
-                const newP = document.createElement('p');
-                newP.classList.add('charTextOnTrack');
-                newP.id = `charText${i}`;
-                newP.textContent = vak4.name;
-                newDiv.appendChild(newP);
-
-                finishLine.classList.add('visible');
-                finishLine.style.right = '130px';
-
-            }
+            addCharacterToTrack(vak4);
         })
 
         killButton.addEventListener('click', function() {
             
-            alert(`ТЫ УБИЛ ${document.getElementById(`char${i}`).querySelector('img').alt}`);
             const formData = new FormData();
-            formData.append('charName', document.getElementById(`char${i}`).querySelector('img').alt);
+            formData.append('charName', document.getElementById(`char${vak4.name}`).querySelector('img').alt);
             fetch('/charDel', {
               method: 'POST',
               body: formData
@@ -198,25 +639,24 @@ buttonInv.addEventListener('click', function()
               console.error('Ошибка удаления:', error);
             });
 
-            [`char${i}`, `track${i}`, `charText${i}`].forEach(id => 
+            [`char${vak4.name}`, `track${vak4.name}`, `charText${vak4.name}`].forEach(id => 
                 document.getElementById(id)?.remove()
             );
             const remainingTracks = container.getElementsByClassName('track').length;
             if (remainingTracks === 0) {
                 finishLine.classList.remove('visible');
                 }
+            alert(`ТЫ УБИЛ ${document.getElementById(`char${vak4.name}`).querySelector('img').alt}`);
             });
+
             deleteButton.addEventListener('click', function()
             {
-                if(document.getElementById(`track${i}`))
-                {
-                    const div = document.getElementById('container');
-                    div.removeChild(document.getElementById(`track${i}`));
-                }
-                const remainingTracks = container.getElementsByClassName('track').length;
-            if (remainingTracks === 0) {
-                finishLine.classList.remove('visible');
-            }
+                socket.send(JSON.stringify({
+                  type: 'deleteCharacter',
+                  character: vak4
+                }));
+
+                deleteCharacterFromTrack(vak4);
             })
     }
     }
@@ -273,6 +713,7 @@ generateButton.addEventListener('click', function()
         if (imageUrl) {
             const formData = new FormData();
             formData.append('url', imageUrl);
+            formData.append('token', currentUserToken);
             fetch('/img', {
               method: 'POST',
               body: formData
@@ -292,17 +733,17 @@ generateButton.addEventListener('click', function()
 });
 
 
-buttonInv.addEventListener('click', function()
-{
-    if(container.innerHTML)
-    {
-        for(let i = 0; i < charData.runners.length+1; i++)
-        {
-            let char = document.getElementById(`track${i}`); 
-            // char.position = 500px;
-        }
-    }
-});
+// buttonInv.addEventListener('click', function()
+// {
+//     if(container.innerHTML)
+//     {
+//         for(let i = 0; i < charData.length+1; i++)
+//         {
+//             let char = document.getElementById(`track${vak4.name}`); 
+//             // char.position = 500px;
+//         }
+//     }
+// });
 
 
 buttonReset.addEventListener('click', function()
@@ -322,7 +763,8 @@ buttonReset.addEventListener('click', function()
     const firstChild = resultsDiv.firstElementChild;
     resultsDiv.innerHTML = '';    
 
-    finishLine.classList.remove('visible');
+    // finishLine.classList.remove('visible');
+    allFinished = false;
 })
 
 let raceStartTime = 0;
@@ -331,99 +773,151 @@ buttonStart.addEventListener('click', function() {
     if (raceInProgress) {
         return;
     }
-    
+
     const tracks = document.getElementsByClassName('charOnTrack');
     if (tracks.length === 0) {
         alert("Добавьте хотя бы одного персонажа на трек!");
         return;
     }
-   
+
     finishLine.classList.add('visible');
     finishLine.style.right = '130px';
-    
+
     raceInProgress = true;
+    allFinished = false;
     buttonStart.disabled = true;
     buttonInv.disabled = true;
-    buttonReset.disabled = true; 
-    
+    buttonReset.disabled = true;
+
+
     const finishLinePosition = container.offsetWidth - 200;
     const startTime = Date.now();
     const finishTimes = []; 
-    
-    function moveTracks() {
-        if (!raceInProgress) return;
-        
-        let allFinished = true;
+    let finishedCount = 0; 
+    const totalTracks = tracks.length;
+     for (let track of tracks) {
+        track.dataset.finished = 'false';
+    }
 
-        for (let track of tracks) {
-            let currentPosition = parseFloat(track.dataset.position);
-            let speed = parseInt(track.dataset.speed) / 12;
-            
-            if (currentPosition < finishLinePosition + 15) {
-                currentPosition += speed;
-                track.dataset.position = currentPosition;
-                track.style.transform = `translateX(${currentPosition}px)`;
-                allFinished = false;
-            } else {
-                if (!track.dataset.finishTime) {
-                    const finishTime = Date.now();
-                    track.dataset.finishTime = finishTime;
-                    finishTimes.push({
-                        element: track,
-                        finishTime: finishTime,
-                        characterId: parseInt(track.dataset.characterId)
-                    });
-                }
+    function getVisualSpeed(realSpeed) {
+    if (Math.random() < 0.7 && currentVisualSpeeds[realSpeed]) {
+        return currentVisualSpeeds[realSpeed];
+    }
+
+    const randomChange = Math.floor(Math.random() * 3) + 1;
+    const visualSpeed = Math.max(1, realSpeed + randomChange);
+
+    currentVisualSpeeds[realSpeed] = visualSpeed;
+
+    return visualSpeed;
+}
+
+    function moveTracks() {
+    if (!raceInProgress) return;
+
+    let allFinishedNow = false;
+
+    for (let track of tracks) {
+        if (track.dataset.finished === 'true') continue;
+
+        let currentPosition = parseFloat(track.dataset.position);
+        let speed = parseInt(track.dataset.speed) / 10;
+
+        if (currentPosition < finishLinePosition) {
+            currentPosition += getVisualSpeed(speed);
+
+            if (currentPosition >= finishLinePosition) {
+                currentPosition = finishLinePosition; 
+                track.dataset.finished = 'true';
+                finishedCount++;
+
+                const finishTime = Date.now();
+                track.dataset.finishTime = finishTime;
+                finishTimes.push({
+                    element: track,
+                    finishTime: finishTime,
+                    characterId: parseInt(track.dataset.characterId)
+                });
+
+                console.log(`Финиш! ${track.dataset.name}: ${(finishTime - startTime)}ms`);
             }
-        }
-            
-        if (allFinished) {
-            raceInProgress = false;
-            buttonStart.disabled = false;
-            buttonInv.disabled = false;
-            buttonReset.disabled = false; 
-            animationId = null;
-            
-            finishTimes.sort((a, b) => a.finishTime - b.finishTime);
-            
-            const resultsDiv = document.getElementById('results');
-            let resultsHTML = '';
-            
-            finishTimes.forEach((finisher, index) => {
-                const character = charData.runners.find(c => c.id === finisher.characterId);
-                if (character) {
-                    const place = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1} место`;
-                    const time = ((finisher.finishTime - startTime) / 1000).toFixed(2);
-                    
-                    resultsHTML += `
-                        <div class="result-item">
-                            <div class="user-avatar" style="background: url('${character.url}'); background-size: cover; background-repeat: no-repeat;">
-                                <div class="avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 12px;">${place}</div>
-                            </div>
-                            <div class="result-info">
-                                <div class="result-name">${character.name}</div>
-                                <div class="result-time">Время: ${time} сек.</div>
-                            </div>
-                        </div>`;
+
+            track.dataset.position = currentPosition;
+            track.style.transform = `translateX(${currentPosition}px)`;
+
+            const charText = document.getElementById(`charText${track.dataset.characterId}`);
+                if (charText) {
+                    const realSpeed = parseInt(track.dataset.speed);
+                    const visualSpeed = getVisualSpeed(realSpeed);
+                    const character = charData.find(c => c.id === parseInt(track.dataset.characterId));
+                    charText.textContent = `${track.dataset.name} (Скорость: ${visualSpeed})`;
                 }
-            });
-            
-            resultsDiv.innerHTML = resultsHTML;
-            
-            for (let track of tracks) {
-                track.dataset.finishTime = '';
-            }
-        } else {
-            animationId = requestAnimationFrame(moveTracks);
         }
     }
-    
+
+
+    allFinishedNow = (finishedCount == totalTracks);
+
+    if (allFinishedNow) {
+        raceInProgress = false;
+        allFinished = true; 
+        buttonStart.disabled = false;
+        buttonInv.disabled = false;
+        buttonReset.disabled = false; 
+        animationId = null;
+
+        for(let track of tracks)
+        {
+            const charText = document.getElementById(`charText${track.dataset.characterId}`);
+            const character = charData.find(c => c.id === parseInt(track.dataset.characterId));
+            charText.textContent = `${track.dataset.name}`;
+        }
+
+        finishTimes.sort((a, b) => a.finishTime - b.finishTime);
+        const resultsDiv = document.getElementById('results');
+        let resultsHTML = '';
+
+        finishTimes.slice(0, 3).forEach((finisher, index) => {
+            const character = charData.find(c => c.id === finisher.characterId);
+            if (character) {
+                const rawTime = finisher.finishTime - startTime;
+                const time = (rawTime / 1000).toFixed(2);
+
+                console.log(`Результат ${character.name}: ${rawTime}ms = ${time}сек`);
+
+                const place = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+                resultsHTML += `
+                    <div class="result-item">
+                        <div class="user-avatar" style="background: url('${track.dataset.url}'); background-size: cover; background-repeat: no-repeat;">
+                            <div class="avatar-img" style="display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 12px;">${place}</div>
+                        </div>
+                        <div class="result-info">
+                            <div class="result-name">${track.dataset.name}</div>
+                            <div class="result-time">Время: ${time} сек.</div>
+                        </div>
+                    </div>`;
+            }
+        });
+
+        resultsDiv.innerHTML = resultsHTML;
+
+        for (let track of tracks) {
+            track.dataset.finishTime = '';
+        }
+    } else {
+        animationId = requestAnimationFrame(moveTracks);
+    }
+}
+
     moveTracks();
 });
 
 //// Тут работа с user
 
-
+const userPanelContainer = document.createElement('div');
+userPanelContainer.className = 'user-panel-container';
+const ButtonOut = document.createElement('div');
+ButtonOut.className = 'ButtonOut';
 
 const userPanel = document.createElement('div');
 userPanel.className = 'user-panel';
@@ -435,11 +929,46 @@ userPanel.innerHTML = `
         <span class="user-name">Игрок</span>
     </div>
 `;
-document.body.appendChild(userPanel);
 
-const topPanel = document.querySelector('.topPanel');
-topPanel.appendChild(userPanel);
+const blocker = document.createElement('div');
+blocker.className = 'blocker';
 
+userPanelContainer.appendChild(ButtonOut);
+userPanelContainer.appendChild(userPanel);
+userPanelContainer.appendChild(blocker);
+document.body.appendChild(userPanelContainer);
+
+let isAnimating = false;
+let isShifted = false;
+
+userPanel.addEventListener('mouseenter', function() {
+    if (!isShifted && !isAnimating) {
+        isAnimating = true;
+        userPanel.classList.remove('returning');
+        userPanel.classList.add('shifted');
+    }
+});
+
+userPanel.addEventListener('transitionend', function(e) {
+    if (e.propertyName === 'transform') {
+        isAnimating = false;
+        
+        if (userPanel.classList.contains('shifted')) {
+            isShifted = true;   
+          setTimeout(() => {
+            isAnimating = true;
+            userPanel.classList.remove('shifted');
+            userPanel.classList.add('returning');
+          },3000);
+        } else if (userPanel.classList.contains('returning')) {
+            isShifted = false;
+            blocker.classList.remove('active');
+        }
+    }
+});
+
+userPanel.addEventListener('mouseleave', function() {
+});
 
 /// тут линия финиша
 
@@ -450,3 +979,38 @@ finishLine.id = 'globalFinishLine';
 container.appendChild(finishLine);
 container.style.position = 'relative';
 
+
+// тут кнопка выхода
+ButtonOut.addEventListener('click', function() {
+    const exitContainer = document.createElement('div');
+    exitContainer.classList.add('exitContainer');
+    const shadowing = document.createElement('div');
+    shadowing.classList.add('shadowing');
+    
+    exitContainer.innerHTML = `
+        <div class="exit-content">
+            <h3>Вы действительно хотите выйти?</h3>
+            <div class="exit-buttons">
+                <button id="confirmExit" class="exit-confirm">Да</button>
+                <button id="cancelExit" class="exit-cancel">Нет</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(shadowing);
+    document.body.appendChild(exitContainer);
+    
+    document.getElementById('confirmExit').addEventListener('click', function() {
+        if (document.querySelector('.user-name')) {
+            document.querySelector('.user-name').textContent = "Игрок";
+        }
+        currentUserToken = "";
+        document.body.removeChild(exitContainer);
+        document.body.removeChild(shadowing);
+        showAuthModal();
+    });
+    
+    document.getElementById('cancelExit').addEventListener('click', function() {
+        document.body.removeChild(exitContainer);
+        document.body.removeChild(shadowing);
+    });
+});
