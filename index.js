@@ -4,6 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const secret = "52";
 
 const charJson = 'C:/\Users/\kiril/\TRPO_Git/\chars.json';
 const charData = JSON.parse(fs.readFileSync(charJson, 'utf8'));
@@ -50,6 +51,26 @@ wss.on('connection', socket => {
 			  startRaceOnServer();
 			}
       }
+    }
+    if(data.type === 'slowDownCharacter') // тут делать
+    {
+    	if(!raceInProgress)
+    	{
+    		console.log('Нажимается только в гонке!');
+    		return;
+    	}
+		      setTimeout(() => {
+		      charElement.dataset.speed = originalSpeed;
+		      charElement.dataset.slowed = 'false';
+		      newP1.textContent = `Скорость восстановлена`;
+		      
+		      setTimeout(() => {
+		          if (newP1.parentNode) {
+		              newP1.remove();
+		          }
+		      }, 2000);
+		      
+		  }, slowDownDuration);
     }
   });
 });
@@ -233,6 +254,7 @@ wss.on('connection', (client) => {
     	}
     }
 
+
   });
 });
 
@@ -290,7 +312,26 @@ app.get('/game.js', (req, res) => {
 });
 
 app.get('/offline.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'offline.html'));
+		// if(req.body.token)
+		// {
+		// 	res.json({
+	  //   success: true,
+	  //   message: 'Все классно обработано все ок!',
+	  //   token: req.body.token,
+	  //   });
+		// }
+		// else {
+		// 		return res.status(200).json({ success: false, message: 'Токен нето' });
+		// 		res.sendFile(path.join(__dirname, 'offline.html'));
+	  // }
+
+	// if (!req.body.token) {
+  //   return res.status(200).send('Токен не передан');
+  // }
+
+  // console.log('Получен токен:', token);
+
+  res.sendFile(path.join(__dirname, 'offline.html'));
 });
 
 app.get('/game_offline.js', (req, res) => {
@@ -415,6 +456,39 @@ app.post('/chars', upload.none(), (req, res) => {
 
 app.get('/allChars', (req, res) => {
 		res.sendFile(path.join(__dirname, 'chars.json'));
+});
+
+app.post('/token', upload.none(), (req, res) => {
+	if(req.body.token)
+	{
+		res.json({
+    success: true,
+    message: 'Все классно обработано все ок!',
+    token: req.body.token,
+    });
+	}
+	else {
+			return res.status(200).json({ success: false, message: 'Токен нето' });
+  }
+
+});
+
+app.post('/offlineToken', upload.none(), (req, res) => {
+	if(req.body.token)
+	{
+		res.json({
+    success: true,
+    message: 'Все классно обработано все ок!',
+    token: req.body.token,
+    });
+	}
+	else {
+			return res.status(200).json({ success: false, message: 'Токен нето' });
+  }
+});
+
+app.post('/topToken', upload.none(), (req, res) => {
+
 });
 
 // app.post('/chars/add', express.json(), (req, res) => {
@@ -614,21 +688,20 @@ app.post('/charDel', upload.none(), async (req, res) => {
 app.post('/login', upload.none(), async (req, res) => {
 	try {
 
-	if(!req.body.username || !req.body.password){
+	if(!req.body.token){
       return res.status(400).send('Вы нето ввели!!!');
     }
 
-    const username = req.body.username;
-    const password = req.body.password;
+    const token = req.body.token;
 
     const filePath = path.join(`${PARTOFPATH}users.json`);
     const rawData = fs.readFileSync(filePath, 'utf8');
     const json = JSON.parse(rawData);
     
-    const user = json.users.find(u => u.username === username && u.password === password);
+    const user = json.users.find(u => u.token === token);
     if(user)
     {
-    		res.status(200).json({ success: true });   
+    		res.status(200).json({ success: true, username: user.username });   
 
     }
     else

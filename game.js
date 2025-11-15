@@ -2,7 +2,6 @@
 // const crypto = require('crypto');
 const container = document.getElementById('container');
 const buttonInv = document.getElementById('ButtonInv');
-buttonInv.classList.add('ButtonInv');
 const buttonStart = document.getElementById('ButtonStart');
 const buttonReset = document.getElementById('ButtonReset');
 let raceInProgress = false;
@@ -534,7 +533,8 @@ function deleteCharacterFromTrack(vak4)
 }
 
 container.addEventListener('click', function(event) {
-    function slowDownCharacter(charElement) {
+    function slowDownCharacter(charElement) { // тут перенести в онлайн и переделать под запрос
+
         const originalSpeed = parseInt(charElement.dataset.speed);
         const slowedSpeed = Math.floor(originalSpeed * 0.7);
         
@@ -597,6 +597,10 @@ container.addEventListener('click', function(event) {
 });
 
 function showAuthModal() {
+        if(currentUserToken)
+        {
+            return;
+        }
         const shadowing = document.createElement('div');
         shadowing.classList.add('shadowing');
         shadowing.id = 'authShadowing';
@@ -624,7 +628,6 @@ function showAuthModal() {
                     <h3>Регистрация</h3>
                     <input type="text" id="signupUsername" class="auth-input" placeholder="Логин">
                     <input type="password" id="signupPassword" class="auth-input" placeholder="Пароль">
-                    <input type="password" id="signupConfirmPassword" class="auth-input" placeholder="Повторите пароль">
                     <button id="signupSubmit" class="auth-submit">Зарегистрироваться</button>
                     <div id="signupError" class="auth-error"></div>
                 </div>
@@ -658,9 +661,11 @@ function showAuthModal() {
                 errorDiv.textContent = 'Заполните все поля';
                 return;
             }
+            hs256(username + password, secret).then(token => {
+            currentUserToken = token;
+            localStorage.setItem('token', currentUserToken);
             const formData = new FormData();
-            formData.append("username", username);
-            formData.append("password", password);
+            formData.append("token", currentUserToken);
             fetch('/login', {
                 method: 'POST',
                 body: formData
@@ -673,11 +678,6 @@ function showAuthModal() {
                         document.querySelector('.user-name').textContent = username;
                     }
                     // currentUserToken = await hs256(username+password, secret);
-                    hs256(username + password, secret).then(token => {
-                    currentUserToken = token;
-                    console.log(currentUserToken);
-
-                    //formData
                     const formData = new FormData();
                     formData.append('token', currentUserToken);
                     fetch('/chars', {
@@ -700,16 +700,11 @@ function showAuthModal() {
                 console.log(error);
                 errorDiv.textContent = 'Ошибка соединения';
             });
-                    });
+                    }});
 
                     // const response = await fetch('/chars');
                     // if (!response.ok) throw new Error('Ошибка загрузки');
                     // charData = await response.json();
-
-
-                } else {
-                    errorDiv.textContent = data.message || 'Ошибка входа';
-                }
             })
             .catch(error => {
                 errorDiv.textContent = 'Ошибка соединения';
@@ -815,6 +810,46 @@ function syncChars(){
 
 
 window.addEventListener('DOMContentLoaded', async () => {
+currentUserToken = localStorage.getItem('token');
+// if(currentUserToken)
+// {
+//     const formData = new FormData();
+//     formData.append("token", currentUserToken);
+//     fetch('/login', {
+//         method: 'POST',
+//         body: formData
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.success) {
+//             if (document.querySelector('.user-name')) {
+//                 document.querySelector('.user-name').textContent = username;
+//             }
+//             // currentUserToken = await hs256(username+password, secret);
+//             const formData = new FormData();
+//             formData.append('token', currentUserToken);
+//             fetch('/chars', {
+//               method: 'POST',
+//               body: formData
+//             }).then(response => response.json())
+//     .       then(data => {
+//             if (data.success) {
+//                 charData = data.data;
+//                 // charData.sort((a, b) => a.id - b.id);
+//                 charData.forEach((char, index) => {
+//                   char.id = index + 1;
+//                 });
+//                 errorDiv.textContent = 'Все ок.';
+//             } else {
+//                 errorDiv.textContent = data.message || 'Ошибка получения бойцов';
+//             }
+//     })
+//     .catch(error => {
+//         console.log(error);
+//         errorDiv.textContent = 'Ошибка соединения';
+//     });
+// }
+console.log(currentUserToken);
 syncChars();
 
 function enableAttentionEffect() {
@@ -970,10 +1005,21 @@ buttonInv.addEventListener('click', function()
     newDiv.classList.add('inventoryMenu');
     newDiv.id = 'menuDiv';
     document.body.appendChild(newDiv);
-
-    for(let i = 1; i < charData.length+1; i++)
+    if(!charData.find(c => c.id === 1))
     {
-
+        const defaultRunner =  
+        {
+          "id": 1,
+          "name": "Default runner",
+          "color": "#FF7B6B",
+          "speed": 15,
+          "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1sk_eXgKrVebI7H_1NMwLb8YAasI1s8FDdQ&s"
+        }   
+        charData[0] = defaultRunner; 
+    }
+    console.log(charData);
+    for(let i = 1; i <= charData.length; i++)
+    {
         const vak4 = charData.find(c => c.id === i);
         const newMDiv = document.createElement('div');
         newMDiv.classList.add('characterInMenu');
@@ -1006,6 +1052,7 @@ buttonInv.addEventListener('click', function()
          const buttonContainer = document.createElement('div');
         buttonContainer.classList.add('button-container');
 
+
         const addButton = document.createElement('button');
         addButton.textContent = 'Добавить';
         addButton.classList.add('addButton');
@@ -1017,6 +1064,13 @@ buttonInv.addEventListener('click', function()
         deleteButton.classList.add('deleteButton');
         buttonContainer.appendChild(deleteButton);
         deleteButton.id = `deleteButton${vak4.name}`;
+
+        if(vak4.name == "Default runner")
+        {
+            addButton.disabled = true;
+            deleteButton.disabled = true;    
+            killButton.disabled = true;
+        }
 
         newMDiv.appendChild(buttonContainer);
 
@@ -1238,7 +1292,47 @@ userPanel.addEventListener('mouseleave', function() {
 
 /// тут линия финиша
 
+window.addEventListener('load', () => {
+if (currentUserToken) {
+  const formData = new FormData();
+  formData.append("token", currentUserToken);
+  fetch('/login', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      if (document.querySelector('.user-name')) {
+        document.querySelector('.user-name').textContent = data.username;
+      }
 
+      const formData = new FormData();
+      formData.append('token', currentUserToken);
+      fetch('/chars', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          charData = data.data;
+          charData.forEach((char, index) => {
+            char.id = index + 1;
+          });
+          errorDiv.textContent = 'Все ок.';
+        } else {
+          errorDiv.textContent = data.message || 'Ошибка получения бойцов';
+        }
+      })
+      .catch(error => {
+        console.log(error);
+        errorDiv.textContent = 'Ошибка соединения';
+      });
+    }
+  });
+}
+});
 
 
 
@@ -1266,6 +1360,7 @@ ButtonOut.addEventListener('click', function() {
             document.querySelector('.user-name').textContent = "Игрок";
         }
         currentUserToken = "";
+        localStorage.setItem('token', currentUserToken);
         document.body.removeChild(exitContainer);
         document.body.removeChild(shadowing);
         showAuthModal();
@@ -1275,5 +1370,6 @@ ButtonOut.addEventListener('click', function() {
         document.body.removeChild(exitContainer);
         document.body.removeChild(shadowing);
     });
+
 });
 

@@ -6,6 +6,7 @@ let charData;
 
 window.addEventListener('DOMContentLoaded', async () => {
   try {
+    currentUserToken = localStorage.getItem('token');
     const response = await fetch('/allChars');
     if (!response.ok) throw new Error('Ошибка загрузки');
 
@@ -147,6 +148,47 @@ userPanel.addEventListener('transitionend', function(e) {
 userPanel.addEventListener('mouseleave', function() {
 });
 
+window.addEventListener('load', () => {
+if (currentUserToken) {
+  const formData = new FormData();
+  formData.append("token", currentUserToken);
+  fetch('/login', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      if (document.querySelector('.user-name')) {
+        document.querySelector('.user-name').textContent = data.username;
+      }
+
+      const formData = new FormData();
+      formData.append('token', currentUserToken);
+      fetch('/chars', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          charData = data.data;
+          charData.forEach((char, index) => {
+            char.id = index + 1;
+          });
+          errorDiv.textContent = 'Все ок.';
+        } else {
+          errorDiv.textContent = data.message || 'Ошибка получения бойцов';
+        }
+      })
+      .catch(error => {
+        console.log(error);
+        errorDiv.textContent = 'Ошибка соединения';
+      });
+    }
+  });
+}
+});
 
 // тут кнопка выхода
 ButtonOut.addEventListener('click', function() {
@@ -168,13 +210,19 @@ ButtonOut.addEventListener('click', function() {
     document.body.appendChild(exitContainer);
     
     document.getElementById('confirmExit').addEventListener('click', function() {
-        alert('Выход из аккаунта...');
+        if (document.querySelector('.user-name')) {
+            document.querySelector('.user-name').textContent = "Игрок";
+        }
+        currentUserToken = "";
+        localStorage.setItem('token', currentUserToken);
         document.body.removeChild(exitContainer);
         document.body.removeChild(shadowing);
+        showAuthModal();
     });
     
     document.getElementById('cancelExit').addEventListener('click', function() {
         document.body.removeChild(exitContainer);
         document.body.removeChild(shadowing);
     });
+
 });

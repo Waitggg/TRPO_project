@@ -2,7 +2,6 @@
 // const crypto = require('crypto');
 const container = document.getElementById('container');
 const buttonInv = document.getElementById('ButtonInv');
-buttonInv.classList.add('ButtonInv');
 const buttonStart = document.getElementById('ButtonStart');
 const buttonReset = document.getElementById('ButtonReset');
 let raceInProgress = false;
@@ -215,6 +214,10 @@ container.addEventListener('click', function(event) {
 });
 
 function showAuthModal() {
+        if(currentUserToken)
+        {
+            return;
+        }
         const shadowing = document.createElement('div');
         shadowing.classList.add('shadowing');
         shadowing.id = 'authShadowing';
@@ -388,7 +391,7 @@ function showAuthModal() {
     }
 
 window.addEventListener('DOMContentLoaded', async () => {
-
+currentUserToken = localStorage.getItem('token');
 function syncChars(){
     fetch('/gameChars', {
     method: 'GET',
@@ -396,9 +399,9 @@ function syncChars(){
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if(gameChars.characters != data.gameChars.characters)
+            if(gameChars.characters != data.characters)
             {
-                gameChars.characters = data.gameChars.characters;
+                gameChars.characters = data.characters;
                 for(char of gameChars.characters)
                 {
                     addCharacterToTrack(char);
@@ -529,7 +532,7 @@ function resetAutoRace() {
 
     try {
         // тут запрос при открытии окна!
-        syncChars();
+        // syncChars();
         showAuthModal();
         createDefaultRacer();
         startAutoRace();
@@ -970,6 +973,48 @@ userPanel.addEventListener('transitionend', function(e) {
 userPanel.addEventListener('mouseleave', function() {
 });
 
+window.addEventListener('load', () => {
+if (currentUserToken) {
+  const formData = new FormData();
+  formData.append("token", currentUserToken);
+  fetch('/login', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      if (document.querySelector('.user-name')) {
+        document.querySelector('.user-name').textContent = data.username;
+      }
+
+      const formData = new FormData();
+      formData.append('token', currentUserToken);
+      fetch('/chars', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          charData = data.data;
+          charData.forEach((char, index) => {
+            char.id = index + 1;
+          });
+          errorDiv.textContent = 'Все ок.';
+        } else {
+          errorDiv.textContent = data.message || 'Ошибка получения бойцов';
+        }
+      })
+      .catch(error => {
+        console.log(error);
+        errorDiv.textContent = 'Ошибка соединения';
+      });
+    }
+  });
+}
+});
+
 /// тут линия финиша
 
 
@@ -1004,6 +1049,7 @@ ButtonOut.addEventListener('click', function() {
             document.querySelector('.user-name').textContent = "Игрок";
         }
         currentUserToken = "";
+        localStorage.setItem('token', currentUserToken);
         document.body.removeChild(exitContainer);
         document.body.removeChild(shadowing);
         showAuthModal();
@@ -1013,4 +1059,5 @@ ButtonOut.addEventListener('click', function() {
         document.body.removeChild(exitContainer);
         document.body.removeChild(shadowing);
     });
+
 });
