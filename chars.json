@@ -71,6 +71,46 @@
       "speed": "78",
       "url": "https://static.insales-cdn.com/images/products/1/7222/329129014/2._%D0%BC%D0%B8%D0%BD%D1%8C%D0%BE%D0%BD_610%D1%85850_%D0%BC%D0%BC.jpg",
       "owner": "-9DvRV7TDiEX4UlDl5c4KOzdIOIm4C3_a13PwEEM9fU"
+    },
+    {
+      "id": 10,
+      "name": "Скелет-гонщик",
+      "color": "#FFFFFF",
+      "speed": 85,
+      "url": "https://i.pinimg.com/736x/56/c6/33/56c633a3d04a73dad48ad21ceb406f2b.jpg",
+      "owner": "o0fjAhn9GEeBz4v1RXB2MBqGADhdhr7LuvYvDRIOUyw"
+    },
+    {
+      "id": 11,
+      "name": "Boba Fett",
+      "color": "#8B9D6E",
+      "speed": 85,
+      "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxtLY7XULR4R2WZNwrCsv5IRqKPIs6mze1yQyic5pXm1bS9QvQXTxOI5YBuGOXp5r7MlSeFmXbXojlysfPiBv-0jGh9KjPMy725jzIUi0r&s=10",
+      "owner": "o0fjAhn9GEeBz4v1RXB2MBqGADhdhr7LuvYvDRIOUyw"
+    },
+    {
+      "id": 12,
+      "name": "Jim Carrey",
+      "color": "#FEE440",
+      "speed": 87,
+      "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMqKRoU4N1zxvCh1lgtLB4_vlidWy4JE_lOVyI5dsu8Jc21EllpMKhW3etC17ID9ORk3KO_C8DnjSMXaFfoZxqA3mBBMcH4BbMiuXMOsZZ&s=10",
+      "owner": "o0fjAhn9GEeBz4v1RXB2MBqGADhdhr7LuvYvDRIOUyw"
+    },
+    {
+      "id": 13,
+      "name": "Jay and Silent Bob",
+      "color": "#00FF00",
+      "speed": 42,
+      "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQAVQCnUYZWDGsrWDJREhTw5aUW1zZyjZahiN4PvuByaPBqjfw8nJMVGsaYNZeSC8tYPIPLEqx_k8PbmzQBREBs4eFGEpW3k_LNbTqq8BNb&s=10",
+      "owner": "o0fjAhn9GEeBz4v1RXB2MBqGADhdhr7LuvYvDRIOUyw"
+    },
+    {
+      "id": 14,
+      "name": "Боб Оденкерк",
+      "color": "#FFD700",
+      "speed": 63,
+      "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfAKFIsikngAME-qlqV2SERS7r0u-6-SWuWgxkI9DANZhXNfXMkzkXQvr2oufx7OtF80NZXgEwVMwTqE1d3AVZWy8seFGfQljhos6hvb2ixw&s=10",
+      "owner": "o0fjAhn9GEeBz4v1RXB2MBqGADhdhr7LuvYvDRIOUyw"
     }
   ]
 }
