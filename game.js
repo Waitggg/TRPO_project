@@ -39,15 +39,34 @@ const socket = new WebSocket('ws://localhost:3000');
 
 let lastPositions = {};
 
-function animateToPosition(el, from, to) {
+// function animateToPosition(el, from, to) {
+//   const duration = 100; // мс
+//   const start = performance.now();
+
+//   function step(now) {
+//     const progress = Math.min((now - start) / duration, 1);
+//     const current = from + (to - from) * progress;
+//     el.style.transform = `translateX(${current}px)`;
+
+//     if (progress < 1) {
+//       requestAnimationFrame(step);
+//     }
+//   }
+
+//   requestAnimationFrame(step);
+// }
+
+function animateToPosition(el, fromPercent, toPercent) {
   const duration = 100; // мс
   const start = performance.now();
+  const parentWidth = el.parentElement.offsetWidth;
 
   function step(now) {
     const progress = Math.min((now - start) / duration, 1);
-    const current = from + (to - from) * progress;
-    el.style.transform = `translateX(${current}px)`;
-
+    const currentPercent = fromPercent + (toPercent - fromPercent) * progress;
+    const currentPx = (parentWidth * currentPercent) / 10;
+    el.style.transform = `translateX(${Math.min(currentPx, parentWidth-130)}px)`;
+    
     if (progress < 1) {
       requestAnimationFrame(step);
     }
@@ -96,7 +115,7 @@ socket.onmessage = (event) => {
       if (!el) return;
 
       const from = lastPositions[p.token] ?? 0;
-      const to = p.position;
+      const to = (p.position / 200);
 
       animateToPosition(el, from, to);
       lastPositions[p.token] = to;
