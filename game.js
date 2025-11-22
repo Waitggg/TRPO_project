@@ -85,12 +85,12 @@ socket.onmessage = (event) => {
   }
   if (data.type === 'startRace')
   {
+    syncChars();
     console.log('началось');
 
     // startRace();
   }
   if (data.type === 'raceUpdate') {
-    syncChars();
     data.positions.forEach(p => {
       const el =  document.getElementById(`char1${p.name}`);
       if (!el) return;
@@ -102,8 +102,20 @@ socket.onmessage = (event) => {
       lastPositions[p.token] = to;
     });
   }
+  if (data.type === 'raceStarts') {
+    data.positions.forEach(p => {
+      const el =  document.getElementById(`char1${p.name}`);
+      if (!el) return;
 
+      const from = lastPositions[p.token] ?? 0;
+      const to = p.position;
+
+      animateToPosition(el, from, to);
+      lastPositions[p.token] = to;
+    });
+  }
   if (data.type === 'raceFinished') {
+    gameChars.characters.forEach(c => c.position = "0");
     syncChars();
     showResults(data.results);
   }
@@ -428,7 +440,7 @@ container.addEventListener('click', function(event) {
         }, slowDownDuration);
     }
 
-    if (!raceInProgress || clickCooldown) return;
+    // if (!raceInProgress || clickCooldown) return;
     
     const charElement = event.target.closest('.charOnTrack');
     if (!charElement) return;
@@ -438,6 +450,10 @@ container.addEventListener('click', function(event) {
     clickCooldown = true;
     
     slowDownCharacter(charElement);
+     socket.send(JSON.stringify({
+              type: 'slowDownCharacter',
+              characterName: charElement.dataset.name
+            }));
     
     charElement.style.filter = 'brightness(0.7)';
     charElement.style.boxShadow = '0 0 10px red';

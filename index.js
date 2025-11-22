@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const secret = "52";
+const slowDownDuration = 1000; // 1 секунда замедления
 
 const charJson = 'C:/\Users/\kiril/\TRPO_Git/\chars.json';
 const charData = JSON.parse(fs.readFileSync(charJson, 'utf8'));
@@ -40,7 +41,6 @@ wss.on('connection', socket => {
         gameChars.readyPlayers.push(data.token);
       }
 
-      // Когда все готовы — запускаем гонку
       if (gameChars.readyPlayers.length === gameChars.players.length && gameChars.players.length > 0) {
         console.log('Все готовы, запускаем гонку');
 			if (
@@ -54,21 +54,24 @@ wss.on('connection', socket => {
     }
     if(data.type === 'slowDownCharacter') // тут делать
     {
-    	if(!raceInProgress)
-    	{
-    		console.log('Нажимается только в гонке!');
-    		return;
-    	}
+    	console.log(data);
+    	// if(!raceInProgress)
+    	// {
+    	// 	console.log('Нажимается только в гонке!');
+    	// 	return;
+    	// }
+    	let char = participants.find(char => data.characterName==char.name);
+			if (!char) {
+			  console.log(`Персонаж ${data.characterName} не найден`);
+			  return;
+			}
+    	let originalSpeed = char.speed;
+    	char.speed = 0;
 		      setTimeout(() => {
-		      charElement.dataset.speed = originalSpeed;
-		      charElement.dataset.slowed = 'false';
-		      newP1.textContent = `Скорость восстановлена`;
+		      char.speed = originalSpeed;
+		      char.slowed = false;
+		      console.log(`Скорость восстановлена`);
 		      
-		      setTimeout(() => {
-		          if (newP1.parentNode) {
-		              newP1.remove();
-		          }
-		      }, 2000);
 		      
 		  }, slowDownDuration);
     }
@@ -92,6 +95,22 @@ function startRaceOnServer() {
     p.finished = false;
     p.finishTime = null;
   });
+      wss.clients.forEach(cl => {
+      if (cl.readyState === WebSocket.OPEN) {
+        cl.send(JSON.stringify({
+          type: 'raceStarts',
+          positions: participants.map(p => ({
+            token: p.token,
+            name: p.name,
+            position: p.position,
+            finished: p.finished
+          }))
+        }));
+      }
+    });
+  setTimeout(() => {
+
+
 
   const startTime = Date.now();
 
@@ -111,8 +130,8 @@ function startRaceOnServer() {
 
 
       const visualSpeed = getVisualSpeed(p.speed);
-      p.position += Math.max(10,p.speed+visualSpeed);
-      console.log(p.name, p.position, Math.max(10,p.speed+visualSpeed))
+      p.position += Math.max(0,p.speed+visualSpeed);
+      console.log(p.name, p.position, Math.max(0,p.speed+visualSpeed))
 
       if (p.position >= finishLine) {
         p.position = finishLine;
@@ -122,7 +141,6 @@ function startRaceOnServer() {
       }
     });
 
-    // Рассылаем текущие позиции всем клиентам
     wss.clients.forEach(cl => {
       if (cl.readyState === WebSocket.OPEN) {
         cl.send(JSON.stringify({
@@ -137,8 +155,6 @@ function startRaceOnServer() {
       }
     });
   
-
-    // Если все финишировали — завершить гонку
     if (finishedCount === participants.length) {
       clearInterval(raceInterval);
       raceInProgress = false;
@@ -147,7 +163,12 @@ function startRaceOnServer() {
         .filter(p => p.finished)
         .sort((a, b) => a.finishTime - b.finishTime);
 
-      wss.clients.forEach(cl => {
+      participants.forEach(p => p.finished = false);
+      participants.forEach(p => p.position = "0");
+      gameChars.characters.forEach(c => c.position = "0");
+      gameChars.readyPlayers = [];
+setTimeout(() => {
+	      wss.clients.forEach(cl => {
         if (cl.readyState === WebSocket.OPEN) {
           cl.send(JSON.stringify({
             type: 'raceFinished',
@@ -156,10 +177,15 @@ function startRaceOnServer() {
           }));
         }
       });
+  console.log("Прошла 2 секунд");
+}, 2000);
+
 
       console.log('Гонка завершена');
     }
-  }, 20); // каждые 100 мс
+  }, 20);
+    console.log("Прошла 2 секунд");
+}, 2000);
 }
 
 function getVisualSpeed(baseSpeed) {
@@ -243,6 +269,7 @@ wss.on('connection', (client) => {
 
 				if(gameChars.readyPlayers.length > gameChars.players.length / 2)
 				{
+				gameChars.characters.forEach(c=>c.position = "0");
     	  wss.clients.forEach(cl => {
         if (cl.readyState === WebSocket.OPEN) {
           cl.send(JSON.stringify({
@@ -589,13 +616,12 @@ app.post('/img', upload.none(), async (req, res) => {
     const aiResponse = await axios.get('https://serpapi.com/search', {
       params: {
         engine: 'google_ai_mode',
-        q: `Представь ты придумываешь свой мир гонок без зла и негатива. напиши какую скорость мог бы развивать ${respAi} в мире гонок? Скорость только целое число от 1 до 100. Цвет в hex. Ответ строго в формате JSON: { id: "-", name: "Имя", color: "Цвет", speed: "Скорость", url: "-" }`,
+        q: `Представь ты придумываешь свой мир гонок без зла и негатива. напиши какую скорость мог бы развивать ${respAi} в мире гонок? Скорость только целое число от 1 до 100. Цвет в hex. Ответ строго в формате JSON: { id: "-", name: "Имя", color: "Цвет", speed: Скорость, url: "-" }`,
         api_key: apiKey
       }
     });
 
-    const aiResult = aiResponse.data.text_blocks?.[0]?.code || aiResponse.data.text_blocks?.[0]?.snippet;
-    aiResult.speed = parseInt(aiResponse.data.text_blocks?.[0]?.code?.speed || aiResponse.data.text_blocks?.[0]?.snippet?.speed, 10);
+    let aiResult = aiResponse.data.text_blocks?.[0]?.code || aiResponse.data.text_blocks?.[0]?.snippet;
     console.log(aiResponse.data);
     console.log(aiResult);
     if(aiResult === undefined)
@@ -607,6 +633,10 @@ app.post('/img', upload.none(), async (req, res) => {
       "speed": 12,
     	"url": "https://st.depositphotos.com/1026550/3824/i/450/depositphotos_38245069-stock-photo-funny-overweight-sports-man.jpg",
     	"owner": user.token});
+    	 res.json({
+		    message: 'Такой персонаж нето или есть уже',
+		    success: false
+		    });
     }
     let jsonAiRes;
 		try {
@@ -618,7 +648,7 @@ app.post('/img', upload.none(), async (req, res) => {
 		  id: charData.runners.length + 1,
 		  name: jsonAiRes.name,
 		  color: jsonAiRes.color,
-		  speed: jsonAiRes.speed,
+		  speed: parseInt(aiResponse.data.text_blocks?.[0]?.code?.speed || aiResponse.data.text_blocks?.[0]?.snippet?.speed || jsonAiRes.speed, 10),
 		  url: imageUrl,
 		  owner: user.token
 		};
